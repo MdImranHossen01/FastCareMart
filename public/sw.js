@@ -1,4 +1,4 @@
-const CACHE_NAME = 'Climax Apparels-cache-v1';
+const CACHE_NAME = 'Fast-Care-Mart-cache-v1';
 const OFFLINE_URL = '/offline';
 
 const ASSETS_TO_CACHE = [

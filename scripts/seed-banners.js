@@ -15,8 +15,8 @@ if (fs.existsSync(envPath)) {
 }
 
 if (!mongodbUri) {
-  // Fallback if env file doesn't parse correctly
-  mongodbUri = 'mongodb+srv://Climax Apparels:S4Epscw0SOkd5ZtG@cluster0.e5n1hnl.mongodb.net/Climax Apparels';
+  console.error('ERROR: MONGODB_URI not found in .env.local');
+  process.exit(1);
 }
 
 console.log('Connecting to MongoDB...');
@@ -40,60 +40,60 @@ const Banner = mongoose.models.Banner || mongoose.model('Banner', BannerSchema);
 
 const banners = [
   {
-    title: 'Trendy T-Shirts',
-    image: '/assets/images/Banner/t-shirts-banner.webp',
+    title: 'Prescription & Pharmacy Delivery',
+    image: '/assets/images/Banner/Prescription-Pharmacy-Delivery.webp',
     link: '/shop',
-    primaryBtnText: 'Shop T-Shirts',
+    primaryBtnText: 'Shop Now',
     primaryBtnLink: '/shop',
     secondaryBtnText: 'Contact Us',
-    secondaryBtnLink: 'https://wa.me/8801811228467',
+    secondaryBtnLink: '/contact',
     order: 1,
     isActive: true,
   },
   {
-    title: 'Classic Polo Shirts',
-    image: '/assets/images/Banner/polo-shirts-banner.webp',
+    title: 'Daily Wellness & Vitality Boosters',
+    image: '/assets/images/Banner/Daily-Wellness-Vitality-Boosters.webp',
     link: '/shop',
-    primaryBtnText: 'Shop Polos',
+    primaryBtnText: 'Shop Now',
     primaryBtnLink: '/shop',
     secondaryBtnText: 'Contact Us',
-    secondaryBtnLink: 'https://wa.me/8801811228467',
+    secondaryBtnLink: '/contact',
     order: 2,
     isActive: true,
   },
   {
-    title: 'Casual & Formal Shirts',
-    image: '/assets/images/Banner/shirts-banner.webp',
+    title: 'Advanced Diagnostic Devices',
+    image: '/assets/images/Banner/Advanced-Diagnostic-Devices.webp',
     link: '/shop',
-    primaryBtnText: 'Shop Shirts',
+    primaryBtnText: 'Shop Now',
     primaryBtnLink: '/shop',
     secondaryBtnText: 'Contact Us',
-    secondaryBtnLink: 'https://wa.me/8801811228467',
+    secondaryBtnLink: '/contact',
     order: 3,
     isActive: true,
   },
   {
-    title: 'Premium Hoodies',
-    image: '/assets/images/Banner/hoodies-banner.webp',
+    title: 'Premium Baby Nutrition & Care',
+    image: '/assets/images/Banner/Premium-Baby-Nutrition-Care.webp',
     link: '/shop',
-    primaryBtnText: 'Shop Hoodies',
+    primaryBtnText: 'Shop Now',
     primaryBtnLink: '/shop',
     secondaryBtnText: 'Contact Us',
-    secondaryBtnLink: 'https://wa.me/8801811228467',
+    secondaryBtnLink: '/contact',
     order: 4,
     isActive: true,
   },
   {
-    title: 'The Climax Apparels Collection',
-    image: '/assets/images/Banner/gentsity-exclusive-collection-banner.webp',
+    title: 'Maternity & Motherhood Care',
+    image: '/assets/images/Banner/Maternity-Motherhood-Care.webp',
     link: '/shop',
-    primaryBtnText: 'Shop Collection',
+    primaryBtnText: 'Shop Now',
     primaryBtnLink: '/shop',
     secondaryBtnText: 'Contact Us',
-    secondaryBtnLink: 'https://wa.me/8801811228467',
+    secondaryBtnLink: '/contact',
     order: 5,
     isActive: true,
-  }
+  },
 ];
 
 async function seed() {

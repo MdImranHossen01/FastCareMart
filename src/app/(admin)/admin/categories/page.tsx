@@ -30,13 +30,19 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Plus, Edit, Trash, Loader2 } from 'lucide-react';
+import { Plus, Edit, Trash, Loader2, MoreHorizontal } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 import {
   Select,
   SelectContent,
@@ -185,9 +191,9 @@ export default function CategoriesPage() {
   }, [nameValue, form, editingCategory]);
 
   return (
-    <div className="flex flex-col gap-4 pt-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Categories</h1>
+    <div className="flex flex-col gap-4 px-0 py-4 md:p-8 pt-6">
+      <div className="flex items-center justify-between px-2 md:px-0">
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Categories</h1>
         <Dialog open={open} onOpenChange={(val) => {
           setOpen(val);
           if (!val) {
@@ -308,8 +314,9 @@ export default function CategoriesPage() {
         </Dialog>
       </div>
 
-      <div className="rounded-md border bg-background">
-        <Table>
+      <div className="rounded-md border-none md:border bg-transparent md:bg-background">
+        <div className="hidden md:block">
+          <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-[100px]">Image</TableHead>
@@ -385,6 +392,67 @@ export default function CategoriesPage() {
             )}
           </TableBody>
         </Table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="block md:hidden divide-y divide-border px-2">
+          {loading ? (
+            <div className="py-12 text-center">
+              <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : categories.length === 0 ? (
+            <div className="py-12 text-center text-muted-foreground text-sm">
+              No categories found.
+            </div>
+          ) : (
+            categories.map((category) => (
+              <div key={category._id} className="py-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border bg-muted">
+                    {category.image ? (
+                      <Image src={category.image} alt={category.name} width={40} height={40} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center">
+                        <Plus className="h-3 w-3 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 space-y-0.5">
+                    <span className="font-bold text-xs text-foreground truncate block max-w-[180px]">
+                      {category.name}
+                    </span>
+                    <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground font-medium">
+                      <span>{category.slug}</span>
+                      <span>•</span>
+                      <span>{category.parentCategory ? category.parentCategory.name || 'Parent' : 'Top Level'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 shrink-0">
+                  <Badge variant={category.isActive ? 'default' : 'secondary'} className="text-[8px] px-1 py-0 font-bold tracking-tighter scale-90">
+                    {category.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label={`Actions for ${category.name}`}>
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleEdit(category)}>
+                        <Edit className="mr-2 h-4 w-4" /> Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(category._id)}>
+                        <Trash className="mr-2 h-4 w-4" /> Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

@@ -393,7 +393,7 @@ export default function SettingsPage() {
                       <FormItem>
                         <FormLabel className="text-sm font-semibold text-gray-700">Brand Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="Fast Care Mart" {...field} className="h-12 rounded-xl bg-gray-50 border-2 border-gray-100 focus:border-primary transition-all" />
+                          <Input placeholder="Palli Vita Nutrition Hub" {...field} className="h-12 rounded-xl bg-gray-50 border-2 border-gray-100 focus:border-primary transition-all" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -445,7 +445,7 @@ export default function SettingsPage() {
                         <FormItem>
                           <FormLabel>Global Meta Title</FormLabel>
                           <FormControl>
-                            <Input placeholder="Fast Care Mart | Best Ecommerce in BD" {...field} />
+                            <Input placeholder="Palli Vita Nutrition Hub | Best Ecommerce in BD" {...field} />
                           </FormControl>
                           <FormDescription>Used as the primary browser title for the home page.</FormDescription>
                           <FormMessage />
@@ -459,7 +459,7 @@ export default function SettingsPage() {
                         <FormItem>
                           <FormLabel>Global Meta Description</FormLabel>
                           <FormControl>
-                            <Input placeholder="Shop the best products at Fast Care Mart..." {...field} />
+                            <Input placeholder="Shop the best products at Palli Vita Nutrition Hub..." {...field} />
                           </FormControl>
                           <FormDescription>Used for search engine snippets and social sharing.</FormDescription>
                           <FormMessage />

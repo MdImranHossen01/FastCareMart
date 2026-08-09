@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Plus, Trash2, Search, FileText, CalendarDays, Eye, DollarSign, MoreHorizontal, Edit, Download, Printer, Users, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Search, FileText, CalendarDays, Eye, DollarSign, MoreHorizontal, Edit, Download, Printer, Users, Loader2, SlidersHorizontal } from 'lucide-react';
 import { generateBillPDF } from '@/lib/bill-invoice-generator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,36 +49,30 @@ function SupplierBillsContent() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   
-  const initialStatus = searchParams.get('status') || 'all';
-  const [statusFilter, setStatusFilter] = useState(initialStatus);
-  const [dateFilter, setDateFilter] = useState({ from: '', to: '' });
+  const statusFilter = searchParams.get('status') || 'all';
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const defaultDates = {
+    from: format(start, 'yyyy-MM-dd'),
+    to: format(end, 'yyyy-MM-dd')
+  };
+  const [dateFilter, setDateFilter] = useState(defaultDates);
   
-  const initialPage = Math.max(1, parseInt(searchParams.get('page') || '1'));
-  const [currentPage, setCurrentPage] = useState(initialPage);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [filterByDate, setFilterByDate] = useState(true);
+  const isFiltered = !!((filterByDate && (dateFilter.from || dateFilter.to)) || searchTerm || statusFilter !== 'all');
+  
+  const currentPage = Math.max(1, parseInt(searchParams.get('page') || '1'));
 
-  // Sync state changes to URL query parameters
+  // Reset page in URL when local filters change
   useEffect(() => {
     const params = new URLSearchParams(searchParams.toString());
-    if (currentPage > 1) {
-      params.set('page', currentPage.toString());
-    } else {
+    if (params.has('page')) {
       params.delete('page');
+      router.push(`/admin/supplier-bills?${params.toString()}`);
     }
-    if (statusFilter !== 'all') {
-      params.set('status', statusFilter);
-    } else {
-      params.delete('status');
-    }
-    router.push(`/admin/supplier-bills?${params.toString()}`);
-  }, [currentPage, statusFilter]);
-
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete('page');
-    router.push(`/admin/supplier-bills?${params.toString()}`);
-  }, [searchTerm, statusFilter, dateFilter.from, dateFilter.to]);
+  }, [searchTerm, dateFilter.from, dateFilter.to, router, searchParams]);
 
   // Create Bill State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -99,13 +93,7 @@ function SupplierBillsContent() {
 
   const [settings, setSettings] = useState<any>(null);
 
-  useEffect(() => {
-    fetchBills();
-    fetchSuppliers();
-    fetchSettings();
-  }, []);
-
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       const res = await fetch('/api/settings');
       if (res.ok) {
@@ -115,11 +103,10 @@ function SupplierBillsContent() {
     } catch (err) {
       console.error('Error fetching settings:', err);
     }
-  };
+  }, []);
 
-  const fetchBills = async () => {
+  const fetchBills = useCallback(async () => {
     try {
-      setLoading(true);
       const res = await fetch('/api/admin/supplier-bills');
       if (!res.ok) throw new Error('Failed to fetch bills');
       const data = await res.json();
@@ -129,9 +116,9 @@ function SupplierBillsContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchSuppliers = async () => {
+  const fetchSuppliers = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/suppliers');
       if (res.ok) {
@@ -141,7 +128,17 @@ function SupplierBillsContent() {
     } catch (error) {
       console.error('Error fetching suppliers:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const loadData = async () => {
+      await fetchBills();
+      await fetchSuppliers();
+      await fetchSettings();
+    };
+    loadData();
+  }, [fetchBills, fetchSuppliers, fetchSettings]);
+
 
   const handleAddItem = () => {
     setBillItems([...billItems, { name: '', quantity: 1, price: 0 }]);
@@ -197,6 +194,7 @@ function SupplierBillsContent() {
       const res = await fetch(`/api/admin/supplier-bills/${id}`, { method: 'DELETE' });
       if (res.ok) {
         toast.success('Supplier Bill deleted');
+        setLoading(true);
         fetchBills();
       } else {
         const err = await res.json().catch(() => ({}));
@@ -248,6 +246,7 @@ function SupplierBillsContent() {
       toast.success(editingBill ? 'Supplier Bill updated successfully' : 'Supplier Bill generated successfully');
       setIsCreateOpen(false);
       setEditingBill(null);
+      setLoading(true);
       fetchBills();
     } catch (error: any) {
       toast.error(error.message || 'Error saving bill');
@@ -261,11 +260,13 @@ function SupplierBillsContent() {
       (b.supplier && b.supplier.name.toLowerCase().includes(searchTerm.toLowerCase()));
       
     let matchesDate = true;
-    if (dateFilter.from) {
-      matchesDate = matchesDate && new Date(b.date) >= new Date(dateFilter.from + 'T00:00:00');
-    }
-    if (dateFilter.to) {
-      matchesDate = matchesDate && new Date(b.date) <= new Date(dateFilter.to + 'T23:59:59');
+    if (filterByDate) {
+      if (dateFilter.from) {
+        matchesDate = matchesDate && new Date(b.date) >= new Date(dateFilter.from + 'T00:00:00');
+      }
+      if (dateFilter.to) {
+        matchesDate = matchesDate && new Date(b.date) <= new Date(dateFilter.to + 'T23:59:59');
+      }
     }
 
     if (!matchesDate) return false;
@@ -291,113 +292,259 @@ function SupplierBillsContent() {
   const accountsPayable = bills.reduce((sum, b) => sum + (b.dueAmount || 0), 0);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Supplier Bills & Purchases</h1>
-          <p className="text-muted-foreground text-sm">Create and track raw materials or products purchased from suppliers.</p>
+    <div className="flex-1 space-y-6 px-0 py-4 md:p-8">
+      <div className="flex items-center justify-between gap-2 border-b pb-4">
+        <div className="space-y-0.5">
+          <h2 className="text-lg sm:text-2xl font-bold tracking-tight">Supplier Bills & Purchases</h2>
+          <p className="text-muted-foreground text-[10px] sm:text-xs md:text-sm hidden xs:block">Create and track raw materials or products purchased from suppliers.</p>
         </div>
-        <Button onClick={openCreateDialog} disabled={suppliers.length === 0}>
-          <Plus className="mr-2 h-4 w-4" /> New Purchase Bill
+        <Button onClick={openCreateDialog} disabled={suppliers.length === 0} className="font-bold bg-primary text-primary-foreground h-9 px-3 text-xs sm:text-sm shrink-0">
+          <Plus className="mr-1 h-4 w-4 shrink-0" />
+          <span className="hidden sm:inline">New Purchase Bill</span>
+          <span className="inline sm:hidden">Add Bill</span>
         </Button>
       </div>
 
       {suppliers.length === 0 && (
-        <div className="bg-amber-50 text-amber-800 p-4 rounded-md border border-amber-200 text-sm">
-          Please add at least one Supplier/Vendor first in the <strong>Suppliers</strong> tab before creating purchase bills.
+        <div className="bg-amber-50 text-amber-800 p-4 rounded-md border border-amber-200 text-sm font-bold">
+          Please add at least one Supplier/Vendor first in the Suppliers tab before creating purchase bills.
         </div>
       )}
 
       {/* Metrics Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="bg-primary/5 border-primary/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Purchase Billed</CardTitle>
-            <FileText className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">৳{totalBilled.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">Cumulative supplier purchases</p>
-          </CardContent>
+      <div className="grid gap-2 sm:gap-4 grid-cols-3">
+        {/* Total Purchase Card */}
+        <Card className="bg-primary/5 border-primary/10 border-l-2 border-l-primary relative overflow-hidden group h-full min-h-[85px] sm:min-h-0 shadow-sm hover:shadow transition-shadow">
+          {/* Mobile Layout */}
+          <div className="flex flex-col p-2.5 sm:hidden justify-between h-full gap-2 items-center text-center">
+            <div className="flex-1 flex items-center justify-center">
+              <span className="text-sm font-black text-primary leading-none">
+                ৳{totalBilled.toLocaleString()}
+              </span>
+            </div>
+            <span className="text-[10px] font-bold text-zinc-600 leading-tight mt-auto">
+              Total Purchase
+            </span>
+          </div>
+          {/* Desktop Layout */}
+          <div className="hidden sm:block">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
+              <CardTitle className="text-sm font-semibold leading-tight">Total Purchase</CardTitle>
+              <FileText className="h-4 w-4 text-primary shrink-0" />
+            </CardHeader>
+            <CardContent className="p-6 pt-0">
+              <div className="text-lg md:text-2xl font-extrabold text-primary">৳{totalBilled.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground mt-1 truncate">Cumulative supplier purchases</p>
+            </CardContent>
+          </div>
         </Card>
-        <Card className="bg-green-500/5 border-green-500/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Paid (Cash-out)</CardTitle>
-            <DollarSign className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-700">৳{totalPaid.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">Payments made to suppliers</p>
-          </CardContent>
+
+        {/* Collected Card */}
+        <Card className="bg-primary/5 border-primary/10 border-l-2 border-l-primary relative overflow-hidden group h-full min-h-[85px] sm:min-h-0 shadow-sm hover:shadow transition-shadow">
+          {/* Mobile Layout */}
+          <div className="flex flex-col p-2.5 sm:hidden justify-between h-full gap-2 items-center text-center">
+            <div className="flex-1 flex items-center justify-center">
+              <span className="text-sm font-black text-primary leading-none">
+                ৳{totalPaid.toLocaleString()}
+              </span>
+            </div>
+            <span className="text-[10px] font-bold text-zinc-600 leading-tight mt-auto">
+              Total Paid
+            </span>
+          </div>
+          {/* Desktop Layout */}
+          <div className="hidden sm:block">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
+              <CardTitle className="text-sm font-semibold leading-tight">Total Paid</CardTitle>
+              <DollarSign className="h-4 w-4 text-primary shrink-0" />
+            </CardHeader>
+            <CardContent className="p-6 pt-0">
+              <div className="text-lg md:text-2xl font-extrabold text-primary">৳{totalPaid.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground mt-1 truncate">Payments made to suppliers</p>
+            </CardContent>
+          </div>
         </Card>
-        <Card className="bg-orange-500/5 border-orange-500/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Accounts Payable</CardTitle>
-            <Users className="h-4 w-4 text-orange-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-700">৳{accountsPayable.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">Outstanding due balances</p>
-          </CardContent>
+
+        {/* Receivable Card */}
+        <Card className="bg-primary/5 border-primary/10 border-l-2 border-l-primary relative overflow-hidden group h-full min-h-[85px] sm:min-h-0 shadow-sm hover:shadow transition-shadow">
+          {/* Mobile Layout */}
+          <div className="flex flex-col p-2.5 sm:hidden justify-between h-full gap-2 items-center text-center">
+            <div className="flex-1 flex items-center justify-center">
+              <span className="text-sm font-black text-primary leading-none">
+                ৳{accountsPayable.toLocaleString()}
+              </span>
+            </div>
+            <span className="text-[10px] font-bold text-zinc-600 leading-tight mt-auto">
+              Payable
+            </span>
+          </div>
+          {/* Desktop Layout */}
+          <div className="hidden sm:block">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
+              <CardTitle className="text-sm font-semibold leading-tight">Accounts Payable</CardTitle>
+              <Users className="h-4 w-4 text-primary shrink-0" />
+            </CardHeader>
+            <CardContent className="p-6 pt-0">
+              <div className="text-lg md:text-2xl font-extrabold text-primary">৳{accountsPayable.toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground mt-1 truncate">Outstanding due balances</p>
+            </CardContent>
+          </div>
         </Card>
       </div>
 
       {/* Filter and Search */}
-      <div className="flex flex-col md:flex-row items-center gap-4">
-        <div className="relative w-full md:w-72">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by bill no or supplier name..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8 w-full"
-          />
-        </div>
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <div className="flex gap-2">
-            {['all', 'paid', 'due'].map((filter) => (
-              <Button
-                key={filter}
-                variant={statusFilter === filter ? 'default' : 'outline'}
-                onClick={() => setStatusFilter(filter)}
-                className="capitalize font-bold"
-              >
-                {filter}
-              </Button>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-md border text-sm w-full sm:w-auto">
-            <Input
-              type="date"
-              className="h-8 w-32 border-none bg-transparent focus-visible:ring-0"
-              value={dateFilter.from}
-              onChange={(e) => setDateFilter(prev => ({ ...prev, from: e.target.value }))}
-            />
-            <span className="text-muted-foreground text-xs">to</span>
-            <Input
-              type="date"
-              className="h-8 w-32 border-none bg-transparent focus-visible:ring-0"
-              value={dateFilter.to}
-              onChange={(e) => setDateFilter(prev => ({ ...prev, to: e.target.value }))}
-            />
-          </div>
-
-          {(dateFilter.from || dateFilter.to) && (
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+        <div className="flex items-center justify-between w-full md:w-auto">
+          <h3 className="font-semibold text-lg tracking-tight text-foreground md:hidden">All Purchases</h3>
+          {/* Mobile Filter Toggle Button */}
+          <div className="block md:hidden">
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              onClick={() => setDateFilter({ from: '', to: '' })}
-              className="text-xs text-muted-foreground hover:text-primary"
+              onClick={() => setShowMobileFilters(!showMobileFilters)}
+              className={`h-9 px-3 ${showMobileFilters ? 'bg-primary/10 text-primary border-primary/20' : ''}`}
             >
-              Clear Date
+              <SlidersHorizontal className="mr-2 h-4 w-4" />
+              Filters
+              {isFiltered && (
+                <span className="ml-1.5 flex h-2 w-2 rounded-full bg-primary animate-pulse" />
+              )}
             </Button>
-          )}
+          </div>
+        </div>
+
+        {/* Desktop & Collapsible Mobile Filters Wrapper */}
+        <div className={`grid transition-all duration-300 ease-in-out md:block w-full ${
+          showMobileFilters 
+            ? 'grid-rows-[1fr] opacity-100 mt-3 visible' 
+            : 'grid-rows-[0fr] opacity-0 invisible md:visible md:opacity-100 md:grid-rows-none'
+        }`}>
+          <div className="overflow-hidden flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 w-full">
+            
+            {/* Left Side: Search & Date Filters */}
+            <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2">
+              <div className="relative w-full md:w-52">
+                <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Search by bill no or supplier name..."
+                  className="pl-8 h-8 text-xs w-full"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+
+              {/* Date Filter Checkbox & Date Inputs */}
+              <div className="flex items-center gap-1.5 text-xs">
+                <label className="flex items-center gap-1 cursor-pointer font-bold text-foreground shrink-0 select-none">
+                  <input
+                    type="checkbox"
+                    checked={filterByDate}
+                    onChange={(e) => setFilterByDate(e.target.checked)}
+                    className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5 accent-primary"
+                  />
+                  Filter by Date
+                </label>
+
+                <div className={`flex items-center gap-1 bg-muted/50 p-0.5 rounded-md border w-full sm:w-auto transition-opacity duration-200 ${!filterByDate ? 'opacity-40 pointer-events-none' : ''}`}>
+                  <Input
+                    type="date"
+                    className="h-7 border-none bg-transparent focus-visible:ring-0 p-0.5 text-xs md:w-28 font-medium"
+                    value={dateFilter.from}
+                    onChange={(e) => setDateFilter(prev => ({ ...prev, from: e.target.value }))}
+                    disabled={!filterByDate}
+                  />
+                  <span className="text-muted-foreground text-[10px] shrink-0 font-medium">to</span>
+                  <Input
+                    type="date"
+                    className="h-7 border-none bg-transparent focus-visible:ring-0 p-0.5 text-xs md:w-28 font-medium"
+                    value={dateFilter.to}
+                    onChange={(e) => setDateFilter(prev => ({ ...prev, to: e.target.value }))}
+                    disabled={!filterByDate}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Right Side: Status Tabs & Clear */}
+            <div className="flex items-center justify-end md:justify-start gap-2 w-full md:w-auto">
+              {/* Tabs (All, Paid, Due) */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Button
+                  variant={statusFilter === 'all' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.delete('status');
+                    params.delete('page');
+                    router.push(`/admin/supplier-bills?${params.toString()}`);
+                  }}
+                  className={`font-bold h-7 px-3 text-xs rounded-lg transition-all duration-200 border cursor-pointer ${
+                    statusFilter === 'all' 
+                      ? 'bg-primary border-primary text-primary-foreground shadow-xs' 
+                      : 'bg-background hover:bg-muted border-border text-foreground'
+                  }`}
+                >
+                  All
+                </Button>
+                <Button
+                  variant={statusFilter === 'paid' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.set('status', 'paid');
+                    params.delete('page');
+                    router.push(`/admin/supplier-bills?${params.toString()}`);
+                  }}
+                  className={`font-bold h-7 px-3 text-xs rounded-lg transition-all duration-200 border cursor-pointer ${
+                    statusFilter === 'paid' 
+                      ? 'bg-primary border-primary text-primary-foreground shadow-xs' 
+                      : 'bg-background hover:bg-muted border-border text-foreground'
+                  }`}
+                >
+                  Paid
+                </Button>
+                <Button
+                  variant={statusFilter === 'due' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => {
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.set('status', 'due');
+                    params.delete('page');
+                    router.push(`/admin/supplier-bills?${params.toString()}`);
+                  }}
+                  className={`font-bold h-7 px-3 text-xs rounded-lg transition-all duration-200 border cursor-pointer ${
+                    statusFilter === 'due' 
+                      ? 'bg-primary border-primary text-primary-foreground shadow-xs' 
+                      : 'bg-background hover:bg-muted border-border text-foreground'
+                  }`}
+                >
+                  Due
+                </Button>
+              </div>
+
+              {isFiltered && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setDateFilter(defaultDates);
+                    setSearchTerm('');
+                    setFilterByDate(true);
+                    router.push('/admin/supplier-bills');
+                  }}
+                  className="text-xs h-7 text-muted-foreground hover:text-primary shrink-0 font-bold px-2"
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
       <Card>
         <CardContent className="p-0">
+          <div className="hidden md:block overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -513,12 +660,127 @@ function SupplierBillsContent() {
               )}
             </TableBody>
           </Table>
+          </div>
+
+          {/* Mobile View */}
+          <div className="block md:hidden divide-y divide-border px-2">
+            {loading ? (
+              <div className="py-6 text-center text-muted-foreground">
+                Loading bills...
+              </div>
+            ) : filteredBills.length === 0 ? (
+              <div className="py-6 text-center text-muted-foreground">
+                No bills found.
+              </div>
+            ) : (
+              paginatedBills.map((bill: any) => (
+                <div key={bill._id} className="py-3 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-primary flex items-center gap-1 text-sm">
+                      <FileText className="h-3 w-3" />
+                      {bill.billNo}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{format(new Date(bill.date), 'dd MMM yyyy')}</span>
+                  </div>
+                  <div className="flex justify-between items-start">
+                    <div className="flex flex-col">
+                      {bill.supplier ? (
+                        <>
+                          <span className="font-bold text-sm text-foreground truncate max-w-[180px]">
+                            {bill.supplier.name}
+                          </span>
+                          {bill.supplier.companyName && (
+                            <span className="text-xs text-muted-foreground">{bill.supplier.companyName}</span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">Deleted Supplier</span>
+                      )}
+                    </div>
+                    <span className={`px-2 py-0.5 text-[9px] rounded-full font-semibold ${
+                        bill.status === 'Paid' ? 'bg-emerald-100 text-emerald-800' :
+                        bill.status === 'Partially Paid' ? 'bg-amber-100 text-amber-800' :
+                        'bg-rose-100 text-rose-800'
+                      }`}>
+                      {bill.status}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center bg-muted/30 p-2 rounded-md">
+                    <div className="flex flex-col text-[10px]">
+                      <span className="text-muted-foreground">Total: <span className="text-foreground font-semibold">৳{bill.total.toLocaleString()}</span></span>
+                      <span className="text-muted-foreground">Paid: <span className="text-emerald-600 font-semibold">৳{bill.paidAmount.toLocaleString()}</span></span>
+                    </div>
+                    <div className="flex flex-col items-end text-[10px]">
+                      <span className="text-muted-foreground">Due: <span className="text-rose-600 font-bold">৳{bill.dueAmount.toLocaleString()}</span></span>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-1 mt-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-teal-600 hover:text-teal-700 hover:bg-teal-50"
+                      onClick={() => generateBillPDF(bill, settings, 'print')}
+                      aria-label={`Print bill ${bill.billNo}`}
+                    >
+                      <Printer className="h-4 w-4" />
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Actions for bill ${bill.billNo}`}>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { setSelectedBill(bill); setIsDetailOpen(true); }}>
+                          <Eye className="mr-2 h-4 w-4 text-indigo-600" /> View Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setEditingBill(bill);
+                            setSelectedSupplierId(bill.supplier?._id || bill.supplier || '');
+                            setBillDate(format(new Date(bill.date), 'yyyy-MM-dd'));
+                            setBillItems(bill.items);
+                            setDiscountValue(bill.discount || 0);
+                            setPaidAmount(bill.paidAmount || 0);
+                            setPaymentMethod(bill.paymentMethod || 'Cash');
+                            setIsCreateOpen(true);
+                          }}
+                        >
+                          <Edit className="mr-2 h-4 w-4" /> Edit Bill
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => generateBillPDF(bill, settings, 'download')}>
+                          <Download className="mr-2 h-4 w-4 text-blue-600" /> Download PDF
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => generateBillPDF(bill, settings, 'print')}>
+                          <Printer className="mr-2 h-4 w-4 text-teal-600" /> Print Bill
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => handleDeleteBill(bill._id)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
           {totalPages > 1 && (
             <div className="py-4 border-t bg-background px-6">
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
-                onPageChange={(page) => setCurrentPage(page)}
+                onPageChange={(page) => {
+                  const params = new URLSearchParams(searchParams.toString());
+                  if (page > 1) {
+                    params.set('page', page.toString());
+                  } else {
+                    params.delete('page');
+                  }
+                  router.push(`/admin/supplier-bills?${params.toString()}`);
+                }}
               />
             </div>
           )}

@@ -1,4 +1,4 @@
-﻿/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -194,7 +194,7 @@ export default function NavbarV2() {
             />
 
             <Link href="/" className={`text-2xl md:text-3xl font-black tracking-tighter hover:scale-105 transition-all flex items-center gap-2 group ${!isHomePage || isScrolled ? 'text-foreground' : 'text-white'}`}>
-              <Image src="/logo.webp" width={40} height={40} alt="Fast Care Mart Logo" className="object-contain" />
+              <Image src="/logo.webp" width={40} height={40} alt="Fast Care Mart Logo" className="object-contain rounded-full" />
               {settings?.brandName || 'Fast Care Mart'}
             </Link>
           </div>

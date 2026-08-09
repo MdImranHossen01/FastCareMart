@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Plus, Trash2, Edit, Search, User, Eye, CreditCard, DollarSign, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Edit, Search, Eye, CreditCard, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,28 +34,22 @@ function SuppliersContent() {
 
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  
-  const initialPage = Math.max(1, parseInt(searchParams.get('page') || '1'));
-  const [currentPage, setCurrentPage] = useState(initialPage);
 
-  // Sync state changes to URL query parameters
-  useEffect(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (currentPage > 1) {
-      params.set('page', currentPage.toString());
-    } else {
-      params.delete('page');
+  const pageParam = searchParams.get('page');
+  let currentPage = 1;
+  if (pageParam) {
+    const parsedPage = Number(pageParam);
+    if (Number.isInteger(parsedPage) && parsedPage > 0) {
+      currentPage = parsedPage;
     }
-    router.push(`/admin/suppliers?${params.toString()}`);
-  }, [currentPage]);
+  }
 
-  // Reset page when search term changes
-  useEffect(() => {
-    setCurrentPage(1);
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
     const params = new URLSearchParams(searchParams.toString());
     params.delete('page');
     router.push(`/admin/suppliers?${params.toString()}`);
-  }, [searchTerm]);
+  };
 
   // Add/Edit Dialog State
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -80,11 +74,8 @@ function SuppliersContent() {
   const [payDescription, setPayDescription] = useState('');
   const [payDate, setPayDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
-  useEffect(() => {
-    fetchSuppliers();
-  }, []);
-
   const fetchSuppliers = async () => {
+    await Promise.resolve();
     try {
       setLoading(true);
       const res = await fetch('/api/admin/suppliers');
@@ -97,6 +88,19 @@ function SuppliersContent() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      if (active) {
+        await fetchSuppliers();
+      }
+    };
+    load();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const openAddDialog = () => {
     setEditingSupplier(null);
@@ -268,72 +272,126 @@ function SuppliersContent() {
         <Input
           placeholder="Search by name, company or phone..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => handleSearchChange(e.target.value)}
           className="w-full"
         />
       </div>
 
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name / Company</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Address</TableHead>
-                <TableHead className="text-right">Outstanding Payable</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
+          <div className="hidden md:block overflow-x-auto">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                    Loading suppliers...
-                  </TableCell>
+                  <TableHead>Name / Company</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Address</TableHead>
+                  <TableHead className="text-right">Outstanding Payable</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ) : filteredSuppliers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
-                    No suppliers found.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                paginatedSuppliers.map((supplier) => (
-                  <TableRow key={supplier._id}>
-                    <TableCell>
-                      <div className="font-medium text-foreground">{supplier.name}</div>
-                      {supplier.companyName && (
-                        <div className="text-xs text-muted-foreground">{supplier.companyName}</div>
-                      )}
-                    </TableCell>
-                    <TableCell>{supplier.phone}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">{supplier.address}</TableCell>
-                    <TableCell className="text-right font-semibold text-rose-600">
-                      ৳{supplier.currentBalance.toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button variant="ghost" size="icon" onClick={() => viewSupplierDetails(supplier)}>
-                        <Eye className="h-4 w-4 text-sky-600" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => openEditDialog(supplier)}>
-                        <Edit className="h-4 w-4 text-indigo-600" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(supplier._id)}>
-                        <Trash2 className="h-4 w-4 text-rose-600" />
-                      </Button>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                      Loading suppliers...
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : filteredSuppliers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                      No suppliers found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedSuppliers.map((supplier) => (
+                    <TableRow key={supplier._id}>
+                      <TableCell>
+                        <div className="font-medium text-foreground">{supplier.name}</div>
+                        {supplier.companyName && (
+                          <div className="text-xs text-muted-foreground">{supplier.companyName}</div>
+                        )}
+                      </TableCell>
+                      <TableCell>{supplier.phone}</TableCell>
+                      <TableCell className="max-w-[200px] truncate">{supplier.address}</TableCell>
+                      <TableCell className="text-right font-semibold text-rose-600">
+                        ৳{supplier.currentBalance.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right space-x-2">
+                        <Button aria-label={`View details for ${supplier.name}`} variant="ghost" size="icon" onClick={() => viewSupplierDetails(supplier)}>
+                          <Eye className="h-4 w-4 text-sky-600" />
+                        </Button>
+                        <Button aria-label={`Edit ${supplier.name}`} variant="ghost" size="icon" onClick={() => openEditDialog(supplier)}>
+                          <Edit className="h-4 w-4 text-indigo-600" />
+                        </Button>
+                        <Button aria-label={`Delete ${supplier.name}`} variant="ghost" size="icon" onClick={() => handleDelete(supplier._id)}>
+                          <Trash2 className="h-4 w-4 text-rose-600" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile View */}
+          <div className="block md:hidden divide-y divide-border">
+            {loading ? (
+              <div className="py-6 text-center text-muted-foreground">
+                Loading suppliers...
+              </div>
+            ) : filteredSuppliers.length === 0 ? (
+              <div className="py-6 text-center text-muted-foreground">
+                No suppliers found.
+              </div>
+            ) : (
+              paginatedSuppliers.map((supplier) => (
+                <div key={supplier._id} className="p-4 flex flex-col gap-2">
+                  <div className="flex justify-between items-start">
+                    <div className="flex flex-col">
+                      <span className="font-bold text-sm text-foreground">
+                        {supplier.name}
+                      </span>
+                      {supplier.companyName && (
+                        <span className="text-xs text-muted-foreground">{supplier.companyName}</span>
+                      )}
+                      <span className="text-xs text-muted-foreground mt-0.5">{supplier.phone}</span>
+                      <span className="text-xs text-muted-foreground truncate max-w-[200px] mt-0.5">{supplier.address}</span>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="font-bold text-rose-600 text-sm">৳{supplier.currentBalance.toLocaleString()}</span>
+                      <div className="flex items-center gap-1 mt-1">
+                        <Button aria-label={`View details for ${supplier.name}`} variant="ghost" size="icon" className="h-7 w-7" onClick={() => viewSupplierDetails(supplier)}>
+                          <Eye className="h-4 w-4 text-sky-600" />
+                        </Button>
+                        <Button aria-label={`Edit ${supplier.name}`} variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDialog(supplier)}>
+                          <Edit className="h-4 w-4 text-indigo-600" />
+                        </Button>
+                        <Button aria-label={`Delete ${supplier.name}`} variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(supplier._id)}>
+                          <Trash2 className="h-4 w-4 text-rose-600" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
           {totalPages > 1 && (
             <div className="py-4 border-t bg-background px-6">
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
-                onPageChange={(page) => setCurrentPage(page)}
+                onPageChange={(page) => {
+                  const params = new URLSearchParams(searchParams.toString());
+                  if (page > 1) {
+                    params.set('page', page.toString());
+                  } else {
+                    params.delete('page');
+                  }
+                  router.push(`/admin/suppliers?${params.toString()}`);
+                }}
               />
             </div>
           )}

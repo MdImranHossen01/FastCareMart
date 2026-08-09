@@ -15,7 +15,7 @@ if (fs.existsSync(envPath)) {
 }
 
 if (!mongodbUri) {
-  mongodbUri = 'mongodb+srv://Climax Apparels:xI2QuBaFZsYQ5vRD@cluster0.e5n1hnl.mongodb.net/Climax Apparels';
+  mongodbUri = 'mongodb+srv://fastcaremart:ymRjwTMh8LzaUfsT@cluster0.37cirsi.mongodb.net/fastcaremart';
 }
 
 console.log('Connecting to MongoDB...');
@@ -34,35 +34,35 @@ const FAQ = mongoose.models.FAQ || mongoose.model('FAQ', FAQSchema);
 
 const faqs = [
   {
-    question: 'What type of products does Climax Apparels offer?',
-    answer: 'Climax Apparels offers premium and comfortable menswear. Our collection includes high-quality T-shirts, Polo Shirts, Casual & Formal Shirts, Hoodies, and comfortable Pants.',
+    question: 'What type of products does Fast Care Mart offer?',
+    answer: 'Fast Care Mart offers a wide range of healthcare and medical products including prescription medicines, OTC & daily healthcare items, diagnostic devices, surgical instruments, baby nutrition & care products, maternity & motherhood essentials, and clinic & hospital supplies.',
     order: 1,
     isActive: true,
   },
   {
-    question: 'How is the fabric quality of your clothing?',
-    answer: 'We use premium combed cotton, high-GSM pique knit, and top-grade woven fabrics for our products. Our fabrics are pre-shrunk, meaning they will not lose their shape or fade after washing.',
+    question: 'Are the medicines and healthcare products on Fast Care Mart authentic?',
+    answer: 'Yes, absolutely. All products listed on Fast Care Mart are sourced directly from licensed manufacturers and authorized distributors. We strictly follow government regulations and quality standards to ensure every product is 100% genuine and safe.',
     order: 2,
     isActive: true,
   },
   {
-    question: 'What are the shipping charges and delivery times?',
-    answer: 'Delivery within Dhaka takes 24 to 48 hours with a shipping fee of 60 BDT. For locations outside Dhaka, shipping is 120 BDT and delivery takes 3 to 5 business days.',
+    question: 'What are the delivery charges and how long does delivery take?',
+    answer: 'Delivery within Dhaka city takes 24 to 48 hours with a shipping fee of 60 BDT. For locations outside Dhaka, shipping is 120 BDT and delivery takes 2 to 5 business days. Free delivery is available on orders above a minimum amount.',
     order: 3,
     isActive: true,
   },
   {
-    question: 'Can I exchange a product if the size does not fit?',
-    answer: 'Yes! We offer a hassle-free 7-day exchange policy. If you have size issues, you can exchange the item as long as it is unused, unwashed, and has its original tags attached.',
+    question: 'Can I return or exchange a product if I receive the wrong item?',
+    answer: 'Yes. If you receive a wrong, damaged, or expired product, you can request a return or exchange within 7 days of delivery. Please contact our support team with your order details and photos of the item. Note that medicines and healthcare consumables cannot be returned once opened for safety reasons.',
     order: 4,
     isActive: true,
   },
   {
-    question: 'How do I choose the correct size?',
-    answer: 'We provide a detailed Size Chart on every product page. We highly recommend measuring your chest and length before placing an order to find your perfect fit.',
+    question: 'Do I need a prescription to order medicines from Fast Care Mart?',
+    answer: 'For OTC (over-the-counter) medicines and general healthcare products, no prescription is required. However, for prescription-only medicines, you will need to upload a valid doctor\'s prescription at the time of placing your order. Our pharmacists verify all prescriptions before processing.',
     order: 5,
     isActive: true,
-  }
+  },
 ];
 
 async function seed() {

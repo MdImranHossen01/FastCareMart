@@ -12,7 +12,6 @@ import GlobalSettings from '@/models/GlobalSettings';
 import Coupon from '@/models/Coupon';
 import dynamic from 'next/dynamic';
 import { HeroSlider } from '@/components/storefront/HeroSlider';
-import { AarongPromoBanners } from '@/components/storefront/AarongPromoBanners';
 import { FreeDeliveryBanner } from '@/components/storefront/FreeDeliveryBanner';
 import {
   SectionSkeleton,
@@ -212,8 +211,8 @@ export default async function Home() {
                   <div className="flex items-center gap-3">
                     {category.image ? (
                       <div className="relative w-6 h-6 flex-shrink-0">
-                        <Image 
-                          src={category.image} 
+                        <Image
+                          src={category.image}
                           alt={category.name}
                           fill
                           sizes="24px"
@@ -241,8 +240,7 @@ export default async function Home() {
             {/* 4. Categories Showcase */}
             <CategoryShowcase categories={data.categories} style={ui.categories} />
 
-            {/* Aarong Promotional Banners Section */}
-            <AarongPromoBanners />
+
 
             {/* 8. Featured Products */}
             {data.featuredProducts.length > 0 && (
@@ -326,8 +324,6 @@ export default async function Home() {
           {/* 4. Categories Showcase */}
           <CategoryShowcase categories={data.categories} style={ui.categories} />
 
-          {/* Aarong Promotional Banners Section */}
-          <AarongPromoBanners />
 
           {/* 8. Featured Products */}
           {data.featuredProducts.length > 0 && (

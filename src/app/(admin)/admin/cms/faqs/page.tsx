@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -20,7 +20,7 @@ export default function FAQsPage() {
   const [faqs, setFaqs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchFaqs = async () => {
+  const fetchFaqs = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/faqs');
       if (!response.ok) {
@@ -34,11 +34,14 @@ export default function FAQsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchFaqs();
-  }, []);
+    const loadData = async () => {
+      await fetchFaqs();
+    };
+    loadData();
+  }, [fetchFaqs]);
 
   const handleDelete = async (id: string, question: string) => {
     const result = await Swal.fire({
@@ -109,6 +112,7 @@ export default function FAQsPage() {
       </div>
 
       <div className="rounded-md border bg-background overflow-hidden shadow-sm">
+        <div className="hidden md:block overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
@@ -187,6 +191,66 @@ export default function FAQsPage() {
             )}
           </TableBody>
         </Table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="block md:hidden divide-y divide-border">
+          {loading ? (
+            <div className="py-8 flex flex-col items-center justify-center gap-2">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground font-medium">Loading FAQs...</p>
+            </div>
+          ) : faqs.length === 0 ? (
+            <div className="py-8 flex flex-col items-center justify-center gap-2 px-4 text-center">
+              <p className="text-base font-medium">No FAQs found</p>
+              <p className="text-xs text-muted-foreground">Add your first FAQ to get started.</p>
+              <Link href="/admin/cms/faqs/new" className="mt-2">
+                <Button variant="outline" size="sm">Add FAQ</Button>
+              </Link>
+            </div>
+          ) : (
+            faqs.map((faq) => (
+              <div key={faq._id} className="p-4 flex flex-col gap-3">
+                <div className="flex flex-col gap-2">
+                  <span className="font-bold text-sm leading-snug">{faq.question}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground">
+                      Order: <Badge variant="outline" className="font-mono text-[10px] px-1">{faq.order}</Badge>
+                    </span>
+                    <button 
+                      onClick={() => toggleStatus(faq._id, faq.isActive)}
+                      className="transition-opacity hover:opacity-80 shrink-0"
+                    >
+                      <Badge variant={faq.isActive ? 'default' : 'secondary'} className="cursor-pointer text-[10px] px-1.5 py-0">
+                        {faq.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end gap-2 mt-1 pt-3 border-t border-muted/50">
+                  <Link href={`/admin/cms/faqs/${faq._id}/edit`}>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 hover:text-primary hover:bg-primary/10"
+                    >
+                      <Edit className="h-4 w-4 mr-1.5" /> Edit
+                    </Button>
+                  </Link>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50" 
+                    onClick={() => handleDelete(faq._id, faq.question)}
+                  >
+                    <Trash className="h-4 w-4 mr-1.5" /> Delete
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

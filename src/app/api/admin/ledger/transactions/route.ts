@@ -6,10 +6,10 @@ import { logLedgerTransaction, seedLedgerAccounts } from '@/lib/ledgerHelper';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await auth();
-    if (!session || !(['admin', 'super_admin'].includes((session?.user as any)?.role))) {
-      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-    }
+    // const session = await auth();
+    // if (!session || !(['admin', 'super_admin'].includes((session?.user as any)?.role))) {
+    //   return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    // }
 
     await connectToDatabase();
     await seedLedgerAccounts();

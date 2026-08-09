@@ -15,7 +15,7 @@ if (fs.existsSync(envPath)) {
 }
 
 if (!mongodbUri) {
-  mongodbUri = 'mongodb+srv://Climax Apparels:xI2QuBaFZsYQ5vRD@cluster0.e5n1hnl.mongodb.net/Climax Apparels';
+  mongodbUri = 'mongodb+srv://fastcaremart:ymRjwTMh8LzaUfsT@cluster0.37cirsi.mongodb.net/fastcaremart';
 }
 
 console.log('Connecting to MongoDB...');

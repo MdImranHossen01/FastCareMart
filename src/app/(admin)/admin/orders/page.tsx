@@ -31,7 +31,8 @@ import {
   FileText,
   Filter as FilterIcon,
   Copy,
-  Search
+  Search,
+  Share2
 } from 'lucide-react';
 
 const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -68,11 +69,13 @@ function FraudCheckBadge({ phone }: { phone?: string }) {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
+  const cachedValue = phone ? fraudCache[phone] : undefined;
+  const displayData = cachedValue !== undefined ? cachedValue : data;
+
   useEffect(() => {
     if (!phone) return;
 
     if (fraudCache[phone] !== undefined) {
-      setData(fraudCache[phone]);
       return;
     }
 
@@ -114,13 +117,13 @@ function FraudCheckBadge({ phone }: { phone?: string }) {
     return <span className="text-[10px] text-muted-foreground ml-1.5 animate-pulse">Checking...</span>;
   }
 
-  if (!data) return null;
+  if (!displayData) return null;
 
-  const ratio = data.success_ratio;
+  const ratio = displayData.success_ratio;
   const colorClass = ratio >= 80 ? 'text-green-600 font-extrabold' : ratio >= 60 ? 'text-yellow-600 font-extrabold' : 'text-red-600 font-extrabold';
 
   return (
-    <span className={`text-[10px] px-1 py-0.5 rounded bg-slate-100 dark:bg-zinc-800 ${colorClass}`} title={`${data.total_parcel} total parcels`}>
+    <span className={`text-[10px] px-1 py-0.5 rounded bg-slate-100 dark:bg-zinc-800 ${colorClass}`} title={`${displayData.total_parcel} total parcels`}>
       {ratio}% Success
     </span>
   );
@@ -130,7 +133,6 @@ function OrdersContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [currentPage, setCurrentPage] = useState(Math.max(1, parseInt(searchParams.get('page') || '1')));
-
   const [orders, setOrders] = useState<any[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -152,6 +154,30 @@ function OrdersContent() {
     from: searchParams.get('from') || '',
     to: searchParams.get('to') || '',
   });
+
+  const [prevSearchParamsStr, setPrevSearchParamsStr] = useState(searchParams.toString());
+  if (searchParams.toString() !== prevSearchParamsStr) {
+    setPrevSearchParamsStr(searchParams.toString());
+    const pageFromParams = Math.max(1, parseInt(searchParams.get('page') || '1'));
+    if (pageFromParams !== currentPage) {
+      setCurrentPage(pageFromParams);
+    }
+    const statusFromParams = searchParams.get('status') || 'All';
+    if (statusFromParams !== statusFilter) {
+      setStatusFilter(statusFromParams);
+    }
+    const searchFromParams = searchParams.get('search') || '';
+    if (searchFromParams !== searchTerm) {
+      setSearchTerm(searchFromParams);
+      setDebouncedSearchTerm(searchFromParams);
+    }
+    const fromFromParams = searchParams.get('from') || '';
+    const toFromParams = searchParams.get('to') || '';
+    if (fromFromParams !== dateFilter.from || toFromParams !== dateFilter.to) {
+      setDateFilter({ from: fromFromParams, to: toFromParams });
+    }
+  }
+
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
  
@@ -261,28 +287,11 @@ function OrdersContent() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchOrders(currentPage);
   }, [currentPage, debouncedSearchTerm, statusFilter, dateFilter.from, dateFilter.to]);
 
-  useEffect(() => {
-    const pageFromParams = Math.max(1, parseInt(searchParams.get('page') || '1'));
-    if (pageFromParams !== currentPage) {
-      setCurrentPage(pageFromParams);
-    }
-    const statusFromParams = searchParams.get('status') || 'All';
-    if (statusFromParams !== statusFilter) {
-      setStatusFilter(statusFromParams);
-    }
-    const searchFromParams = searchParams.get('search') || '';
-    if (searchFromParams !== searchTerm) {
-      setSearchTerm(searchFromParams);
-    }
-    const fromFromParams = searchParams.get('from') || '';
-    const toFromParams = searchParams.get('to') || '';
-    if (fromFromParams !== dateFilter.from || toFromParams !== dateFilter.to) {
-      setDateFilter({ from: fromFromParams, to: toFromParams });
-    }
-  }, [searchParams]);
+
 
   const filteredOrders = orders;
 
@@ -573,6 +582,17 @@ function OrdersContent() {
     }
   };
 
+  const toWhatsAppNumber = (phone: string) => {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.startsWith('88')) {
+      return digits;
+    }
+    if (digits.startsWith('0')) {
+      return '88' + digits.slice(1);
+    }
+    return '88' + digits;
+  };
+
   if (loading) {
     return (
       <div className="flex h-[300px] items-center justify-center">
@@ -803,7 +823,8 @@ function OrdersContent() {
           </div>
         )}
 
-        <Table>
+        <div className="hidden md:block overflow-x-auto">
+          <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-12">
@@ -867,7 +888,7 @@ function OrdersContent() {
                           {order.shippingAddress?.phone && (
                             <>
                               <a 
-                                href={`https://wa.me/${order.shippingAddress.phone.replace(/[^0-9]/g, '').startsWith('88') ? order.shippingAddress.phone.replace(/[^0-9]/g, '') : '88' + (order.shippingAddress.phone.replace(/[^0-9]/g, '').startsWith('0') ? order.shippingAddress.phone.replace(/[^0-9]/g, '').slice(1) : order.shippingAddress.phone.replace(/[^0-9]/g, ''))}`}
+                                href={`https://wa.me/${toWhatsAppNumber(order.shippingAddress.phone)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-green-600 hover:text-green-700 transition-colors p-0.5 hover:bg-slate-50 dark:hover:bg-zinc-800 rounded"
@@ -1034,6 +1055,233 @@ function OrdersContent() {
             )}
           </TableBody>
         </Table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="block md:hidden divide-y divide-border">
+          {filteredOrders.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">
+              No orders found.
+            </div>
+          ) : (
+            filteredOrders.map((order) => (
+              <div key={order._id} className={`p-3 flex flex-col gap-2 ${selectedIds.includes(order._id) ? "bg-muted/50" : ""}`}>
+                {/* Header row: Checkbox, ID, Status */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      checked={selectedIds.includes(order._id)}
+                      onCheckedChange={() => toggleSelect(order._id)}
+                    />
+                    <button
+                      type="button"
+                      className="cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => openDetails(order._id)}
+                    >
+                      <span className={`font-bold hover:underline ${order.isDuplicate ? 'text-red-500 font-extrabold' : order.isRepeat ? 'text-yellow-600 font-extrabold' : 'text-primary'}`}>
+                        #{order._id.slice(-8).toUpperCase()}
+                      </span>
+                    </button>
+                    {order.isDuplicate ? (
+                      <Badge className="bg-red-500 text-white hover:bg-red-600 border-none text-[8px] px-1 py-0 h-3.5">Duplicate</Badge>
+                    ) : order.isRepeat ? (
+                      <Badge className="bg-yellow-500 text-black hover:bg-yellow-600 border-none text-[8px] px-1 py-0 h-3.5">Repeat</Badge>
+                    ) : null}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {getStatusBadge(order.status)}
+                  </div>
+                </div>
+
+                {/* Details */}
+                <div className="space-y-2 text-xs">
+                  {/* Name and Price */}
+                  <div className="flex flex-col gap-0.5">
+                    <div className="font-semibold text-slate-900 dark:text-white text-sm flex items-center justify-between">
+                      <span>{order.shippingAddress?.fullName || order.user?.name || 'Guest User'}</span>
+                      <span className="font-bold text-slate-900 dark:text-white">৳{Math.round(order.totalAmount ?? 0)}</span>
+                    </div>
+
+                    {/* Contact details */}
+                    <div className="flex items-center flex-wrap gap-1.5 mt-0.5">
+                      <span 
+                        onClick={() => order.shippingAddress?.phone && setSearchTerm(order.shippingAddress.phone)}
+                        className="text-muted-foreground hover:text-primary cursor-pointer hover:underline font-medium text-[11px]"
+                      >
+                        {order.shippingAddress?.phone || 'No Phone'}
+                      </span>
+                      {order.shippingAddress?.phone && (
+                        <div className="flex items-center gap-1">
+                           <a 
+                             href={`https://wa.me/${toWhatsAppNumber(order.shippingAddress.phone)}`}
+                             target="_blank"
+                             rel="noopener noreferrer"
+                             className="text-green-600 p-0.5 hover:bg-slate-50 dark:hover:bg-zinc-800 rounded"
+                             title="Chat on WhatsApp"
+                           >
+                             <WhatsAppIcon className="h-3.5 w-3.5" />
+                           </a>
+                           <button
+                             type="button"
+                             onClick={async () => {
+                               try {
+                                 await navigator.clipboard.writeText(order.shippingAddress.phone);
+                                 toast.success('Phone number copied!');
+                               } catch (err) {
+                                 toast.error('Failed to copy phone number.');
+                               }
+                             }}
+                             className="text-muted-foreground p-0.5 hover:bg-slate-50 dark:hover:bg-zinc-800 rounded"
+                             title="Copy Phone"
+                           >
+                             <Copy className="h-3 w-3" />
+                           </button>
+                        </div>
+                      )}
+                      {order.shippingAddress?.phone && (
+                        <FraudCheckBadge phone={order.shippingAddress.phone} />
+                      )}
+                    </div>
+                    {order.user?.email && (
+                      <span className="text-muted-foreground text-[10px] truncate max-w-[200px]">{order.user.email}</span>
+                    )}
+                    <span className="text-[9px] text-muted-foreground uppercase mt-0.5">
+                      {order.createdAt ? format(new Date(order.createdAt), 'MMM dd, yyyy p') : 'N/A'}
+                    </span>
+                  </div>
+
+                  {/* Payment Details */}
+                  <div className="flex flex-wrap items-center gap-1.5 py-0.5">
+                    <Badge
+                      variant="outline"
+                      className={`text-[9px] ${order.paymentStatus === 'Paid' ? 'bg-green-100 text-green-700 border-none font-bold' : 'bg-yellow-100 text-yellow-700 border-none font-bold'}`}
+                    >
+                      {order.paymentStatus}
+                    </Badge>
+                    {order.paymentMethod === 'Manual' && order.manualPaymentDetails && (
+                      <span className="text-[9px] text-muted-foreground font-mono bg-slate-50 dark:bg-zinc-900 px-1.5 py-0.5 rounded border">
+                        {order.manualPaymentDetails.methodName}
+                        {order.manualPaymentDetails.senderNumber ? ` (${order.manualPaymentDetails.senderNumber})` : ''}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Items list */}
+                  <div className="flex flex-wrap gap-1 pt-0.5">
+                    {order.items?.map((item: any, idx: number) => (
+                      <Badge key={idx} variant="outline" className="text-[8px] px-1 py-0 font-normal truncate max-w-[220px]">
+                        {item.quantity}× {item.name}
+                        {(item.color || item.size) && (
+                          <span className="text-muted-foreground ml-0.5">
+                            ({[item.color, item.size].filter(Boolean).join('/')})
+                          </span>
+                        )}
+                      </Badge>
+                    ))}
+                  </div>
+
+                  {order.internalNote && (
+                    <div className="text-[9px] bg-yellow-50 dark:bg-yellow-950/20 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 rounded border border-yellow-200/50 font-medium whitespace-pre-line">
+                      Note: {order.internalNote}
+                    </div>
+                  )}
+
+                  {/* Footer actions */}
+                  <div className="flex items-center justify-between pt-2 border-t mt-2">
+                    <div className="flex items-center gap-1">
+                      {order.paymentMethod === 'Manual' && order.paymentStatus === 'Pending' && order.status !== 'Cancelled' && (
+                        <>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-7 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 text-[10px] px-2 py-0"
+                            onClick={() => {
+                              Swal.fire({
+                                title: 'Approve Payment?',
+                                text: `Are you sure you want to approve manual payment for order #${order._id.slice(-8).toUpperCase()}? This will mark the order as Confirmed & Paid.`,
+                                icon: 'question',
+                                showCancelButton: true,
+                                confirmButtonColor: '#00D1B2',
+                                confirmButtonText: 'Yes, Approve!'
+                              }).then((result) => {
+                                if (result.isConfirmed) {
+                                  updateStatus(order._id, 'Confirmed', { paymentStatus: 'Paid' });
+                                }
+                              });
+                            }}
+                          >
+                            Approve
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-7 text-destructive hover:text-red-700 hover:bg-red-50 text-[10px] px-2 py-0"
+                            onClick={() => handleCancelOrder(order._id)}
+                          >
+                            Cancel
+                          </Button>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 ml-auto">
+                      <Button variant="outline" size="sm" className="h-7 text-primary text-[10px] px-2 py-0 flex items-center gap-1" onClick={() => openDetails(order._id)}>
+                        <Eye className="h-3 w-3" /> View
+                      </Button>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-7 w-7 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuGroup>
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => {
+                              const protocol = window.location.protocol;
+                              const host = window.location.host;
+                              navigator.clipboard.writeText(`${protocol}//${host}/order-success/${order._id}`);
+                              toast.success('Invoice Link Copied');
+                            }}>
+                              <Share2 className="mr-2 h-4 w-4 text-indigo-600" /> Copy Invoice/Pay Link
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDownloadInvoice(order)}>
+                              <FileText className="mr-2 h-4 w-4 text-primary" /> Download Invoice
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handlePrint([order._id])}>
+                              <Printer className="mr-2 h-4 w-4 text-primary" /> Print Invoice
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handlePrintStickers([order._id])}>
+                              <Printer className="mr-2 h-4 w-4 text-primary" /> Print Sticker Invoice
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleSendToSteadfast([order._id])} disabled={!!order.shippingDetails?.consignmentId}>
+                              <Truck className="mr-2 h-4 w-4 text-orange-500" /> Send to Steadfast
+                            </DropdownMenuItem>
+                          </DropdownMenuGroup>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuGroup>
+                            <DropdownMenuLabel>Change Status</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => updateStatus(order._id, 'Confirmed')}>Confirm</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateStatus(order._id, 'Paid', { paymentStatus: 'Paid' })}>Mark Paid</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateStatus(order._id, 'Ready for Delivery')}>Ready for Delivery</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateStatus(order._id, 'Released for Delivery')}>Release for Delivery</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateStatus(order._id, 'Delivered')}>Mark Delivered</DropdownMenuItem>
+                          </DropdownMenuGroup>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuGroup>
+                            <DropdownMenuItem className="text-destructive" onClick={() => handleCancelOrder(order._id)}>Cancel Order</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive font-bold" onClick={() => deleteOrder(order._id)}>Delete Order</DropdownMenuItem>
+                          </DropdownMenuGroup>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
         {totalPages > 1 && (
           <div className="py-6 border-t bg-white px-6">
             <Pagination

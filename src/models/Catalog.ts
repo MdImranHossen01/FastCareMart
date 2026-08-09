@@ -1,4 +1,4 @@
-import mongoose, { Document, Model, Schema } from 'mongoose';
+﻿import mongoose, { Document, Model, Schema } from 'mongoose';
 
 export interface ICatalogItem {
   name: string;
@@ -46,14 +46,14 @@ const CatalogSchema = new Schema<ICatalog>(
   {
     companyInfo: {
       about: { type: String, default: '' },
-      capacity: { type: String, default: '100% Genuine Medicines' },
-      established: { type: String, default: 'Since 2026' },
-      certifications: { type: String, default: 'DGDA Approved Pharmacy' },
-      markets: { type: String, default: 'Dhaka & All over Bangladesh' },
+      capacity: { type: String, default: '5,00,000 pcs/m' },
+      established: { type: String, default: 'Since 2014' },
+      certifications: { type: String, default: 'ISO, BSCI Certified' },
+      markets: { type: String, default: 'EU, USA, Mid-East' },
       address: { type: String, default: 'Sarkarbari, Helal Market, Uttar Khan, Dhaka, Bangladesh' },
       phone: { type: String, default: '+880 1724-338581' },
-      email: { type: String, default: 'info@fastcaremart.com' },
-      corporatePresence: { type: String, default: 'Facebook / Website / Google Map' },
+      email: { type: String, default: 'info@PalliVitaNutritionHub.com' },
+      corporatePresence: { type: String, default: 'LinkedIn / Alibaba / Google Business Profile' },
     },
     categories: [CatalogCategorySchema],
   },

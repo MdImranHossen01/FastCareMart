@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
@@ -50,9 +50,8 @@ function BlogsContent() {
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
   const limit = 10;
 
-  const fetchBlogs = async (page = currentPage) => {
+  const fetchBlogs = useCallback(async (page = currentPage) => {
     try {
-      setLoading(true);
       const res = await fetch(`/api/admin/blogs?page=${page}&limit=${limit}`);
       const data = await res.json();
       if (res.ok) {
@@ -66,11 +65,14 @@ function BlogsContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage]);
 
   useEffect(() => {
-    fetchBlogs();
-  }, []);
+    const loadData = async () => {
+      await fetchBlogs();
+    };
+    loadData();
+  }, [fetchBlogs]);
 
   const handleDelete = async (id: string) => {
     const result = await Swal.fire({
@@ -85,6 +87,7 @@ function BlogsContent() {
 
     if (result.isConfirmed) {
       try {
+        setLoading(true);
         const res = await fetch(`/api/admin/blogs/${id}`, { method: 'DELETE' });
         if (res.ok) {
           toast.success('Blog deleted successfully');
@@ -92,9 +95,11 @@ function BlogsContent() {
         } else {
           const data = await res.json();
           toast.error(data.message || 'Failed to delete blog');
+          setLoading(false);
         }
       } catch {
         toast.error('An error occurred while deleting the blog');
+        setLoading(false);
       }
     }
   };
@@ -137,6 +142,7 @@ function BlogsContent() {
       </div>
 
       <div className="rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden">
+        <div className="hidden md:block overflow-x-auto">
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow>
@@ -232,6 +238,93 @@ function BlogsContent() {
             )}
           </TableBody>
         </Table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="block md:hidden divide-y divide-border">
+          {loading ? (
+            <div className="py-8 flex flex-col items-center justify-center gap-2">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground font-medium">Loading blogs...</p>
+            </div>
+          ) : filteredBlogs.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">
+              No blogs found.
+            </div>
+          ) : (
+            filteredBlogs.map((blog) => (
+              <div key={blog._id} className="p-4 flex flex-col gap-3 hover:bg-muted/30 transition-colors">
+                <div className="flex items-start gap-3">
+                  <div className="h-16 w-24 shrink-0 bg-muted rounded overflow-hidden relative border">
+                    {blog.thumbnail ? (
+                      <Image
+                        src={imageErrors[blog._id] ? 'https://placehold.co/400x225?text=Invalid+Image+URL' : blog.thumbnail}
+                        alt={blog.title}
+                        fill
+                        className="object-cover"
+                        onError={() =>
+                          setImageErrors((prev) => ({ ...prev, [blog._id]: true }))
+                        }
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full text-[10px] text-muted-foreground">No Img</div>
+                    )}
+                  </div>
+                  
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <Link 
+                      href={`/blog/${blog.slug}`} 
+                      target="_blank" 
+                      className="font-bold text-sm line-clamp-2 hover:text-primary transition-colors hover:underline decoration-primary/30 underline-offset-4"
+                    >
+                      {blog.title}
+                    </Link>
+                    <div className="text-[10px] text-muted-foreground font-mono truncate mt-0.5">/{blog.slug}</div>
+                    
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant={blog.isPublished ? 'default' : 'secondary'} className="text-[9px] px-1.5 py-0 h-4">
+                        {blog.isPublished ? 'Published' : 'Draft'}
+                      </Badge>
+                      <span className="text-[10px] text-muted-foreground">
+                        {new Date(blog.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between border-t border-muted/50 pt-3 mt-1">
+                  <div className="flex flex-col bg-muted/40 px-2 py-1 rounded-md">
+                    <span className="text-[9px] uppercase text-muted-foreground font-semibold">Views</span>
+                    <span className="text-xs font-bold text-primary">{blog.views ?? 0}</span>
+                  </div>
+                  
+                  <div className="flex justify-end gap-1">
+                    <Link href={`/blog/${blog.slug}`} target="_blank">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted" title="View Publicly">
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                    <Link href={`/admin/blogs/edit/${blog._id}`}>
+                      <Button variant="outline" size="icon" className="h-8 w-8" aria-label={`Edit blog: ${blog.title}`}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </Link>
+                    <Button 
+                      variant="destructive" 
+                      size="icon" 
+                      className="h-8 w-8 ml-1"
+                      onClick={() => handleDelete(blog._id)}
+                      aria-label={`Delete blog: ${blog.title}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
       
       {!loading && pagination.totalPages > 1 && (
@@ -240,8 +333,8 @@ function BlogsContent() {
             currentPage={currentPage}
             totalPages={pagination.totalPages}
             onPageChange={(page) => {
+              setLoading(true);
               setCurrentPage(page);
-              fetchBlogs(page);
               const params = new URLSearchParams(searchParams.toString());
               params.set('page', page.toString());
               router.push(`?${params.toString()}`);

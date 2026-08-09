@@ -1,6 +1,6 @@
-﻿'use client';
+'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,7 +21,7 @@ export default function BannersPage() {
   const [banners, setBanners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchBanners = async () => {
+  const fetchBanners = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/banners');
       if (!response.ok) {
@@ -35,11 +35,14 @@ export default function BannersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchBanners();
-  }, []);
+    const loadData = async () => {
+      await fetchBanners();
+    };
+    loadData();
+  }, [fetchBanners]);
 
   const handleDelete = async (id: string, title: string) => {
     const result = await Swal.fire({
@@ -47,7 +50,7 @@ export default function BannersPage() {
       text: `You are about to delete the banner "${title}". This action cannot be undone!`,
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonColor: '#00D1B2', // Fast Care Mart primary color roughly
+      confirmButtonColor: '#00D1B2', // Palli Vita Nutrition Hub primary color roughly
       cancelButtonColor: '#d33',
       confirmButtonText: 'Yes, delete it!',
       background: '#fff',
@@ -110,6 +113,7 @@ export default function BannersPage() {
       </div>
 
       <div className="rounded-md border bg-background overflow-hidden shadow-sm">
+        <div className="hidden md:block overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
@@ -218,6 +222,89 @@ export default function BannersPage() {
             )}
           </TableBody>
         </Table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="block md:hidden divide-y divide-border">
+          {loading ? (
+            <div className="py-8 flex flex-col items-center justify-center gap-2">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground font-medium">Loading banners...</p>
+            </div>
+          ) : banners.length === 0 ? (
+            <div className="py-8 flex flex-col items-center justify-center gap-2 px-4 text-center">
+              <p className="text-base font-medium">No banners found</p>
+              <p className="text-xs text-muted-foreground">Add your first promotional banner to get started.</p>
+              <Link href="/admin/cms/banners/new" className="mt-2">
+                <Button variant="outline" size="sm">Add Banner</Button>
+              </Link>
+            </div>
+          ) : (
+            banners.map((banner) => (
+              <div key={banner._id} className="p-4 flex flex-col gap-3">
+                <div className="aspect-[21/9] w-full overflow-hidden rounded-md border bg-muted relative">
+                  <Image
+                    src={banner.image}
+                    alt={banner.title}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-bold text-sm">{banner.title}</span>
+                    <button
+                      onClick={() => toggleStatus(banner._id, banner.isActive)}
+                      className="transition-opacity hover:opacity-80 shrink-0"
+                    >
+                      <Badge variant={banner.isActive ? 'default' : 'secondary'} className="cursor-pointer text-[10px] px-1.5 py-0">
+                        {banner.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </button>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>Order: <Badge variant="outline" className="font-mono text-[10px] px-1">{banner.order}</Badge></span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 mt-1">
+                  <div className="flex flex-col bg-muted/40 p-2 rounded-md">
+                    <span className="text-[10px] uppercase text-muted-foreground font-semibold mb-0.5">Primary CTA</span>
+                    <span className="text-xs font-medium truncate">{banner.primaryBtnText || 'Shop Now'}</span>
+                    <span className="text-[9px] text-muted-foreground truncate">{banner.primaryBtnLink || 'No link'}</span>
+                  </div>
+                  <div className="flex flex-col bg-muted/40 p-2 rounded-md">
+                    <span className="text-[10px] uppercase text-muted-foreground font-semibold mb-0.5">Secondary CTA</span>
+                    <span className="text-xs font-medium truncate">{banner.secondaryBtnText || 'Contact'}</span>
+                    <span className="text-[9px] text-muted-foreground truncate">{banner.secondaryBtnLink || 'No link'}</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 mt-2 pt-2 border-t border-muted/50">
+                  <Link href={`/admin/cms/banners/${banner._id}/edit`}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 hover:text-primary hover:bg-primary/10"
+                    >
+                      <Edit className="h-4 w-4 mr-1.5" /> Edit
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                    onClick={() => handleDelete(banner._id, banner.title)}
+                  >
+                    <Trash className="h-4 w-4 mr-1.5" /> Delete
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

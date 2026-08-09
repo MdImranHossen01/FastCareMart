@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -10,11 +10,11 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { 
-  Plus, 
-  Edit, 
-  Trash, 
-  Loader2, 
+import {
+  Plus,
+  Edit,
+  Trash,
+  Loader2,
   Star,
   User as UserIcon,
   MessageSquare
@@ -51,7 +51,7 @@ export default function TestimonialsPage() {
     rating: 5
   });
 
-  const fetchTestimonials = async () => {
+  const fetchTestimonials = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/testimonials');
       if (!response.ok) throw new Error('Failed to fetch testimonials');
@@ -62,11 +62,14 @@ export default function TestimonialsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchTestimonials();
-  }, []);
+    const loadData = async () => {
+      await fetchTestimonials();
+    };
+    loadData();
+  }, [fetchTestimonials]);
 
   const openAddDialog = () => {
     setEditingId(null);
@@ -111,7 +114,7 @@ export default function TestimonialsPage() {
       });
 
       if (!response.ok) throw new Error('Failed to save testimonial');
-      
+
       toast.success(editingId ? 'Testimonial updated' : 'Testimonial added');
       setIsDialogOpen(false);
       fetchTestimonials();
@@ -148,7 +151,7 @@ export default function TestimonialsPage() {
         });
 
         if (!response.ok) throw new Error('Failed to delete');
-        
+
         toast.success('Deleted successfully');
         fetchTestimonials();
       } catch (error: any) {
@@ -170,86 +173,150 @@ export default function TestimonialsPage() {
       </div>
 
       <div className="rounded-md border bg-background overflow-hidden shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead className="w-[80px]">User</TableHead>
-              <TableHead>Customer Info</TableHead>
-              <TableHead className="max-w-[400px]">Testimonial Content</TableHead>
-              <TableHead>Rating</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={5} className="h-40 text-center">
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">Loading testimonials...</p>
-                  </div>
-                </TableCell>
+        <div className="hidden md:block overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead className="w-[80px]">User</TableHead>
+                <TableHead>Customer Info</TableHead>
+                <TableHead className="max-w-[400px]">Testimonial Content</TableHead>
+                <TableHead>Rating</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ) : testimonials.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="h-40 text-center">
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <MessageSquare className="h-8 w-8 text-muted-foreground" />
-                    <p className="text-lg font-medium">No testimonials yet</p>
-                    <p className="text-sm text-muted-foreground">Add customer feedback to build trust with new visitors.</p>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              testimonials.map((t) => (
-                <TableRow key={t._id} className="group hover:bg-muted/30 transition-colors">
-                  <TableCell>
-                    <Avatar className="h-10 w-10 border">
-                      <AvatarImage src={t.image} alt={t.name} />
-                      <AvatarFallback><UserIcon className="size-4" /></AvatarFallback>
-                    </Avatar>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-semibold">{t.name}</span>
-                      <span className="text-xs text-muted-foreground">{t.role}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="max-w-[400px]">
-                    <p className="text-sm line-clamp-2 italic text-muted-foreground">"{t.content}"</p>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex text-yellow-500">
-                      {[...Array(t.rating || 5)].map((_, i) => (
-                        <Star key={i} className="fill-current size-3" />
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 hover:text-primary hover:bg-primary/10"
-                        onClick={() => openEditDialog(t)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10" 
-                        onClick={() => handleDelete(t._id, t.name)}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-40 text-center">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      <p className="text-sm text-muted-foreground">Loading testimonials...</p>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : testimonials.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-40 text-center">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <MessageSquare className="h-8 w-8 text-muted-foreground" />
+                      <p className="text-lg font-medium">No testimonials yet</p>
+                      <p className="text-sm text-muted-foreground">Add customer feedback to build trust with new visitors.</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                testimonials.map((t) => (
+                  <TableRow key={t._id} className="group hover:bg-muted/30 transition-colors">
+                    <TableCell>
+                      <Avatar className="h-10 w-10 border">
+                        <AvatarImage src={t.image} alt={t.name} />
+                        <AvatarFallback><UserIcon className="size-4" /></AvatarFallback>
+                      </Avatar>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-semibold">{t.name}</span>
+                        <span className="text-xs text-muted-foreground">{t.role}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="max-w-[400px]">
+                      <p className="text-sm line-clamp-2 italic text-muted-foreground">&quot;{t.content}&quot;</p>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex text-yellow-500">
+                        {[...Array(t.rating || 5)].map((_, i) => (
+                          <Star key={i} className="fill-current size-3" />
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 hover:text-primary hover:bg-primary/10"
+                          onClick={() => openEditDialog(t)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDelete(t._id, t.name)}
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="block md:hidden divide-y divide-border">
+          {loading ? (
+            <div className="py-8 flex flex-col items-center justify-center gap-2">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground font-medium">Loading testimonials...</p>
+            </div>
+          ) : testimonials.length === 0 ? (
+            <div className="py-8 flex flex-col items-center justify-center gap-2 px-4 text-center">
+              <MessageSquare className="h-8 w-8 text-muted-foreground" />
+              <p className="text-base font-medium">No testimonials yet</p>
+              <p className="text-xs text-muted-foreground">Add customer feedback to build trust with new visitors.</p>
+            </div>
+          ) : (
+            testimonials.map((t) => (
+              <div key={t._id} className="p-4 flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <Avatar className="h-10 w-10 border shrink-0">
+                      <AvatarImage src={t.image} alt={t.name} />
+                      <AvatarFallback><UserIcon className="size-4" /></AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-bold text-sm text-slate-900 truncate">{t.name}</span>
+                      <span className="text-[10px] text-muted-foreground truncate">{t.role}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex text-yellow-500 shrink-0">
+                    {[...Array(t.rating || 5)].map((_, i) => (
+                      <Star key={i} className="fill-current size-3" />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-muted/30 p-3 rounded-lg border border-muted/50">
+                  <p className="text-xs italic text-muted-foreground line-clamp-4">&quot;{t.content}&quot;</p>
+                </div>
+
+                <div className="flex justify-end gap-2 mt-1 pt-2 border-t border-muted/50">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 hover:text-primary hover:bg-primary/10"
+                    onClick={() => openEditDialog(t)}
+                  >
+                    <Edit className="h-4 w-4 mr-1.5" /> Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                    onClick={() => handleDelete(t._id, t.name)}
+                  >
+                    <Trash className="h-4 w-4 mr-1.5" /> Delete
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -265,29 +332,29 @@ export default function TestimonialsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Customer Name</Label>
-                  <Input 
-                    id="name" 
-                    value={formData.name} 
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="e.g. John Doe"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role">Role / Label</Label>
-                  <Input 
-                    id="role" 
-                    value={formData.role} 
-                    onChange={(e) => setFormData({...formData, role: e.target.value})}
+                  <Input
+                    id="role"
+                    value={formData.role}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                     placeholder="e.g. Verified Buyer"
                   />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="content">Testimonial Content</Label>
-                <Textarea 
-                  id="content" 
-                  value={formData.content} 
-                  onChange={(e) => setFormData({...formData, content: e.target.value})}
+                <Textarea
+                  id="content"
+                  value={formData.content}
+                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                   placeholder="What did the customer say?"
                   className="min-h-[100px]"
                 />
@@ -295,20 +362,20 @@ export default function TestimonialsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="rating">Rating (1-5)</Label>
-                  <Input 
-                    id="rating" 
+                  <Input
+                    id="rating"
                     type="number"
                     min="1"
                     max="5"
-                    value={formData.rating} 
-                    onChange={(e) => setFormData({...formData, rating: parseInt(e.target.value)})}
+                    value={formData.rating}
+                    onChange={(e) => setFormData({ ...formData, rating: parseInt(e.target.value) })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Customer Image (Optional)</Label>
-                  <ImageUpload 
+                  <ImageUpload
                     value={formData.image}
-                    onUpload={(url) => setFormData({...formData, image: url})}
+                    onUpload={(url) => setFormData({ ...formData, image: url })}
                     className="h-24"
                   />
                 </div>

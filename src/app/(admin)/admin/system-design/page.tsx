@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/select";
 import { ImageUpload } from '@/components/ui/image-upload';
 
-const TEMPLATE_OPTIONS = ['v1', 'v2', 'v3', 'v4', 'v5', 'aarong'];
+const TEMPLATE_OPTIONS = ['v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'aarong'];
 const THEME_OPTIONS = ['default', 'emerald', 'black', 'caffeine', 'claude', 'elegant', 'marvel', 'material', 'midnight', 'nature', 'perplexity', 'slack', 'summer', 'sunset', 'valorant', 'supabase', 'amber', 'catppuccin', 'clay', 'cyberpunk', 'darkmatter', 'ocean', 'quantum', 't3', 'tangerine', 'vintage', 'green', 'red', 'rose', 'orange', 'blue', 'yellow', 'violet'];
 
 const TEMPLATE_CONFIG = [

@@ -78,6 +78,7 @@ function ClientChalansContent() {
 
   // Reset page when search term changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCurrentPage(1);
     const params = new URLSearchParams(searchParams.toString());
     params.delete('page');
@@ -108,13 +109,8 @@ function ClientChalansContent() {
   // Phone validation
   const [phoneError, setPhoneError] = useState('');
 
-  useEffect(() => {
-    fetchChalans();
-    fetchProducts();
-    fetchSettings();
-  }, []);
-
   const fetchChalans = async () => {
+    await Promise.resolve();
     try {
       setLoading(true);
       const res = await fetch('/api/admin/bills?type=chalan');
@@ -151,6 +147,13 @@ function ClientChalansContent() {
       console.error('Error fetching settings:', err);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchChalans();
+    fetchProducts();
+    fetchSettings();
+  }, []);
 
   const validatePhone = (phone: string) => {
     const bdPhoneRegex = /^(?:\+?88)?01[3-9]\d{8}$/;
@@ -448,7 +451,8 @@ function ClientChalansContent() {
               <p>No delivery challans found</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            <div className="hidden md:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -523,6 +527,79 @@ function ClientChalansContent() {
                 </TableBody>
               </Table>
             </div>
+
+            {/* Mobile View */}
+            <div className="block md:hidden divide-y divide-border px-2">
+              {paginatedChalans.map((chalan) => (
+                <div key={chalan._id} className="py-3 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-sm">{chalan.invoiceNo}</span>
+                    <span className="text-xs text-muted-foreground">{format(new Date(chalan.date), 'dd MMM yyyy')}</span>
+                  </div>
+                  <div className="flex justify-between items-start">
+                    <div className="flex flex-col">
+                      <span className="font-bold text-sm text-foreground truncate max-w-[180px]">
+                        {chalan.clientName}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{chalan.clientPhone}</span>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-teal-600 hover:text-teal-700 hover:bg-teal-50"
+                          onClick={() => generateBillPDF(chalan, settings, 'print')}
+                          aria-label={`Print chalan ${chalan.invoiceNo}`}
+                        >
+                          <Printer className="h-4 w-4" />
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Actions for chalan ${chalan.invoiceNo}`}>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setSelectedChalan(chalan)}>
+                              <Eye className="mr-2 h-4 w-4" /> View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditingChalan(chalan);
+                                setClientName(chalan.clientName);
+                                setClientPhone(chalan.clientPhone);
+                                setClientAddress(chalan.clientAddress);
+                                setBillItems(chalan.items);
+                                setIsCreateOpen(true);
+                              }}
+                            >
+                              <Edit className="mr-2 h-4 w-4" /> Edit Challan
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => generateBillPDF(chalan, settings, 'download')}>
+                              <Download className="mr-2 h-4 w-4" /> Download PDF
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => generateBillPDF(chalan, settings, 'print')}>
+                              <Printer className="mr-2 h-4 w-4" /> Print PDF
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleConvertToBill(chalan)}>
+                              <ArrowRight className="mr-2 h-4 w-4" /> Convert to Bill
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => handleDeleteChalan(chalan._id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            </>
           )}
           {totalPages > 1 && (
             <div className="py-4 border-t bg-background px-6 mt-4">

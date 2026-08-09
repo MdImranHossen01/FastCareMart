@@ -77,13 +77,6 @@ function ClientOffersContent() {
     router.push(`/admin/offers?${params.toString()}`);
   }, [currentPage]);
 
-  // Reset page when search term changes
-  useEffect(() => {
-    setCurrentPage(1);
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete('page');
-    router.push(`/admin/offers?${params.toString()}`);
-  }, [searchTerm]);
 
   // Offer detail view state
   const [selectedOffer, setSelectedOffer] = useState<any>(null);
@@ -112,12 +105,6 @@ function ClientOffersContent() {
 
   // Phone validation
   const [phoneError, setPhoneError] = useState('');
-
-  useEffect(() => {
-    fetchOffers();
-    fetchProducts();
-    fetchSettings();
-  }, []);
 
   const fetchOffers = async () => {
     try {
@@ -156,6 +143,13 @@ function ClientOffersContent() {
       console.error('Error fetching settings:', err);
     }
   };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchOffers();
+    fetchProducts();
+    fetchSettings();
+  }, []);
 
   // Calculations
   const subtotal = billItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -447,7 +441,10 @@ function ClientOffersContent() {
                 placeholder="Search by client or invoice..."
                 className="pl-8"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
               />
             </div>
           </div>
@@ -463,7 +460,8 @@ function ClientOffersContent() {
               <p>No quotations found</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            <div className="hidden md:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -544,6 +542,84 @@ function ClientOffersContent() {
                 </TableBody>
               </Table>
             </div>
+
+            {/* Mobile View */}
+            <div className="block md:hidden divide-y divide-border px-2">
+              {paginatedOffers.map((offer) => (
+                <div key={offer._id} className="py-3 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-sm">{offer.invoiceNo}</span>
+                    <span className="text-xs text-muted-foreground">{format(new Date(offer.date), 'dd MMM yyyy')}</span>
+                  </div>
+                  <div className="flex justify-between items-start">
+                    <div className="flex flex-col">
+                      <span className="font-bold text-sm text-foreground truncate max-w-[180px]">
+                        {offer.clientName}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{offer.clientPhone}</span>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="font-bold text-primary text-sm">৳{Math.round(offer.total)}</span>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-teal-600 hover:text-teal-700 hover:bg-teal-50"
+                          onClick={() => generateBillPDF(offer, settings, 'print')}
+                          aria-label={`Print offer ${offer.invoiceNo}`}
+                        >
+                          <Printer className="h-4 w-4" />
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Actions for offer ${offer.invoiceNo}`}>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setSelectedOffer(offer)}>
+                              <Eye className="mr-2 h-4 w-4" /> View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setEditingOffer(offer);
+                                setClientName(offer.clientName);
+                                setClientPhone(offer.clientPhone);
+                                setClientAddress(offer.clientAddress);
+                                setBillItems(offer.items);
+                                setDeliveryCharge(offer.deliveryCharge);
+                                setServiceFee(offer.serviceFee || 0);
+                                setDiscountType(offer.discountType || 'fixed');
+                                setDiscountValue(offer.discountValue || 0);
+                                setIsCreateOpen(true);
+                              }}
+                            >
+                              <Edit className="mr-2 h-4 w-4" /> Edit Offer
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => generateBillPDF(offer, settings, 'download')}>
+                              <Download className="mr-2 h-4 w-4" /> Download PDF
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => generateBillPDF(offer, settings, 'print')}>
+                              <Printer className="mr-2 h-4 w-4" /> Print PDF
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleConvertToChalan(offer)}>
+                              <ArrowRight className="mr-2 h-4 w-4" /> Convert to Challan
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => handleDeleteOffer(offer._id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            </>
           )}
           {totalPages > 1 && (
             <div className="py-4 border-t bg-background px-6 mt-4">

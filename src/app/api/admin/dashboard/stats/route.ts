@@ -5,6 +5,8 @@ import Order from '@/models/Order';
 import User from '@/models/User';
 import Product from '@/models/Product';
 import Expense from '@/models/Expense';
+import Bill from '@/models/Bill';
+import SupplierBill from '@/models/SupplierBill';
 
 export async function GET(req: NextRequest) {
   try {
@@ -251,10 +253,72 @@ export async function GET(req: NextRequest) {
       { $sort: { date: 1 } }
     ]);
 
+    // Aggregate daily expenses
+    const dailyExpenses = await Expense.aggregate([
+      {
+        $match: {
+          date: { $gte: startDate, $lte: endDate },
+          type: { $ne: 'income' }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$date' }
+          },
+          expenses: { $sum: '$amount' }
+        }
+      }
+    ]);
+
+    // Combine chartData and dailyExpenses by date
+    const chartDataMap = new Map<string, { date: string; revenue: number; orders: number; profit: number; expenses: number }>();
+
+    chartData.forEach((item: any) => {
+      chartDataMap.set(item.date, {
+        date: item.date,
+        revenue: item.revenue || 0,
+        orders: item.orders || 0,
+        profit: item.profit || 0,
+        expenses: 0
+      });
+    });
+
+    dailyExpenses.forEach((item: any) => {
+      const dateStr = item._id;
+      const existing = chartDataMap.get(dateStr);
+      if (existing) {
+        existing.expenses = item.expenses || 0;
+      } else {
+        chartDataMap.set(dateStr, {
+          date: dateStr,
+          revenue: 0,
+          orders: 0,
+          profit: 0,
+          expenses: item.expenses || 0
+        });
+      }
+    });
+
+    const combinedChartData = Array.from(chartDataMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+
     // Simple Forecasting: Average Daily Revenue * 30
     const daysInRange = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) || 1;
     const avgDailyRevenue = totalRevenue / daysInRange;
     const projectedMonthlyRevenue = avgDailyRevenue * 30;
+
+    // Accounts Receivable: Sum of currentBillDue from client bills
+    const arStats = await Bill.aggregate([
+      { $match: { documentType: 'bill' } },
+      { $group: { _id: null, total: { $sum: '$currentBillDue' } } }
+    ]);
+    const accountsReceivable = arStats[0]?.total || 0;
+
+    // Accounts Payable: Sum of dueAmount from supplier bills
+    const apStats = await SupplierBill.aggregate([
+      { $group: { _id: null, total: { $sum: '$dueAmount' } } }
+    ]);
+    const accountsPayable = apStats[0]?.total || 0;
 
     return NextResponse.json({
       stats: {
@@ -272,13 +336,15 @@ export async function GET(req: NextRequest) {
         totalAdSpend,
         newUsersCount,
         returningUsersCount,
-        projectedMonthlyRevenue
+        projectedMonthlyRevenue,
+        accountsReceivable,
+        accountsPayable
       },
       recentOrders,
       lowStockProducts,
       topSellingProducts,
       topCustomers,
-      chartData
+      chartData: combinedChartData
     });
   } catch (error) {
     console.error('Dashboard Stats Error:', error);

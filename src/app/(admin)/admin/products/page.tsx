@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, Edit, Trash, Loader2, Search, DatabaseZap, Download } from 'lucide-react';
+import { Plus, Edit, Trash, Loader2, Search, DatabaseZap, Download, MoreHorizontal } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -20,6 +20,12 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Swal from 'sweetalert2';
 import { Pagination } from '@/components/ui/pagination';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 
 interface AdminProduct {
   _id: string;
@@ -50,9 +56,11 @@ function ProductsContent() {
   const [exportLoading, setExportLoading] = useState(false);
   const limit = 10;
 
-  const fetchProducts = async (signal?: AbortSignal, page = currentPage) => {
+  const fetchProducts = async (signal?: AbortSignal, page = currentPage, showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       const response = await fetch(`/api/products?page=${page}&limit=${limit}`, { signal });
       if (!response.ok) {
         toast.error(`Failed to fetch products: ${response.status} ${response.statusText}`);
@@ -71,9 +79,10 @@ function ProductsContent() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetchProducts(controller.signal);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchProducts(controller.signal, currentPage, false);
     return () => controller.abort();
-  }, []);
+  }, [currentPage]);
 
   const handleDelete = async (id: string) => {
     const result = await Swal.fire({
@@ -285,11 +294,11 @@ function ProductsContent() {
   };
 
   return (
-    <div className="flex flex-col gap-4 pt-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Products</h1>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={exportToCSV} disabled={exportLoading}>
+    <div className="flex flex-col gap-4 px-0 py-4 md:p-8 pt-6">
+      <div className="flex items-center justify-between gap-4 px-2 md:px-0">
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight">Products</h1>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button variant="outline" onClick={exportToCSV} disabled={exportLoading} className="h-9 px-3 text-xs md:h-10 md:px-4 md:text-sm">
             {exportLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
@@ -298,34 +307,35 @@ function ProductsContent() {
             {selectedIds.length > 0 ? `Export (${selectedIds.length})` : 'Export All'}
           </Button>
           <Link href="/admin/products/new">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" /> Add Product
+            <Button className="h-9 px-3 text-xs md:h-10 md:px-4 md:text-sm">
+              <Plus className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Add Product</span>
             </Button>
           </Link>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 px-2 md:px-0">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search products..."
-            className="pl-8"
+            className="pl-8 h-9 text-sm"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       </div>
 
-      <div className="rounded-md border bg-background overflow-hidden relative">
+      <div className="rounded-md border-none md:border bg-transparent md:bg-background overflow-hidden relative">
         {selectedIds.length > 0 && (
           <div className="sticky top-0 z-20 w-full bg-primary text-primary-foreground px-4 py-2 flex items-center justify-between animate-in slide-in-from-top duration-200">
-            <div className="flex items-center gap-4 text-sm font-medium">
+            <div className="flex items-center gap-4 text-xs md:text-sm font-medium">
               <span>{selectedIds.length} products selected</span>
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-primary-foreground hover:bg-white/10"
+                className="text-primary-foreground hover:bg-white/10 text-xs h-7 px-2"
                 onClick={() => setSelectedIds([])}
               >
                 Deselect All
@@ -335,7 +345,7 @@ function ProductsContent() {
               <Button
                 variant="outline"
                 size="sm"
-                className="bg-white text-primary hover:bg-white/90"
+                className="bg-white text-primary hover:bg-white/90 text-xs h-7 px-2"
                 onClick={exportToCSV}
                 disabled={exportLoading}
               >
@@ -350,7 +360,8 @@ function ProductsContent() {
           </div>
         )}
 
-        <Table>
+        <div className="hidden md:block">
+          <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-12">
@@ -471,6 +482,99 @@ function ProductsContent() {
             )}
           </TableBody>
         </Table>
+        </div>
+
+        {/* Mobile View */}
+        <div className="block md:hidden divide-y divide-border px-2">
+          {loading ? (
+            <div className="py-12 text-center">
+              <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="py-12 text-center text-muted-foreground text-sm">
+              No products found.
+            </div>
+          ) : (
+            filteredProducts.map((product) => {
+              const primaryImage = product.images?.[0];
+              return (
+                <div key={product._id} className="py-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Checkbox
+                      checked={selectedIds.includes(product._id)}
+                      onCheckedChange={() => toggleSelect(product._id)}
+                      className="h-4 w-4 shrink-0 border-muted-foreground/50"
+                    />
+                    {/* Image */}
+                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border bg-muted">
+                      {primaryImage ? (
+                        <Image 
+                          src={primaryImage} 
+                          alt={product.name} 
+                          width={40} height={40}
+                          className="h-full w-full object-cover" 
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <Plus className="h-3 w-3 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                    {/* Title & Info */}
+                    <div className="min-w-0 space-y-0.5">
+                      <Link 
+                        href={`/product/${product.slug}`} 
+                        target="_blank"
+                        className="font-bold text-xs text-foreground truncate hover:text-primary transition-colors block max-w-[180px]"
+                      >
+                        {product.name}
+                      </Link>
+                      <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground font-medium">
+                        <span>SKU: {product.sku || 'N/A'}</span>
+                        <span>•</span>
+                        <span className={(product.stock ?? 0) <= 5 ? 'text-destructive font-semibold' : ''}>
+                          Stock: {product.stock ?? 0}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 pt-0.5">
+                        <span className="text-[10px] font-bold text-primary">
+                          ৳{Math.round(product.salePrice || product.price || 0)}
+                        </span>
+                        {product.salePrice && product.price ? (
+                          <span className="text-[8px] line-through text-muted-foreground">
+                            ৳{Math.round(product.price)}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right side Status & Actions Dropdown */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Badge variant={product.isPublished ? 'default' : 'secondary'} className="text-[8px] px-1 py-0 font-bold tracking-tighter scale-90">
+                      {product.isPublished ? 'Live' : 'Draft'}
+                    </Badge>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => router.push(`/admin/products/${product._id}/edit`)}>
+                          <Edit className="mr-2 h-4 w-4" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(product._id)}>
+                          <Trash className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
       </div>
       
       {!loading && pagination.totalPages > 1 && (
@@ -480,7 +584,6 @@ function ProductsContent() {
             totalPages={pagination.totalPages}
             onPageChange={(page) => {
               setCurrentPage(page);
-              fetchProducts(undefined, page);
               const params = new URLSearchParams(searchParams.toString());
               params.set('page', page.toString());
               router.push(`?${params.toString()}`);
