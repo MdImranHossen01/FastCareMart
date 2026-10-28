@@ -27,7 +27,7 @@ const orderItemSchema = z.object({
   product: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid product ID'),
   name: z.string().min(1, 'Product name is required'),
   quantity: z.number().int().positive('Quantity must be at least 1'),
-  price: z.number().positive(), // We will re-validate this on the server
+  price: z.number().min(0), // Server computes and re-validates real price
   image: z.string().nullish().or(z.literal('')),
   color: z.string().optional(),
   size: z.string().optional(),
@@ -236,7 +236,7 @@ export async function POST(req: NextRequest) {
           product = await Product.findOneAndUpdate(
             variantQuery,
             { $inc: { "variants.$.stock": -item.quantity } },
-            { session, new: true }
+            { session, returnDocument: 'after' }
           );
 
           if (product) {
@@ -258,7 +258,7 @@ export async function POST(req: NextRequest) {
               isPublished: true
             },
             { $inc: { stock: -item.quantity } },
-            { session, new: true }
+            { session, returnDocument: 'after' }
           );
 
           if (product) {
@@ -280,7 +280,9 @@ export async function POST(req: NextRequest) {
         if (!product) throw new Error('Product not found during price verification');
 
         const hasVariant = !!(item.color || item.size);
-        let itemPrice = product.salePrice ?? product.price;
+        const baseRegularPrice = product.price || 0;
+                const hasValidSalePrice = typeof product.salePrice === "number" && product.salePrice > 0 && product.salePrice < baseRegularPrice;
+                let itemPrice: number = (hasValidSalePrice && typeof product.salePrice === "number") ? product.salePrice : baseRegularPrice;
         let itemPurchasePrice = product.purchasePrice ?? 0;
 
         if (hasVariant) {
@@ -289,7 +291,9 @@ export async function POST(req: NextRequest) {
             String(v.size || '').trim() === String(item.size || '').trim()
           );
           if (variant) {
-            itemPrice = (variant.salePrice ?? variant.price) ?? (product.salePrice ?? product.price);
+            const vBasePrice = variant.price || baseRegularPrice;
+                        const vHasSalePrice = typeof variant.salePrice === "number" && variant.salePrice > 0 && variant.salePrice < vBasePrice;
+                        itemPrice = (vHasSalePrice && typeof variant.salePrice === "number") ? variant.salePrice : vBasePrice;
             itemPurchasePrice = variant.purchasePrice ?? product.purchasePrice ?? 0;
           }
         }

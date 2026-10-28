@@ -110,7 +110,7 @@ export default function ProductDetailsV3Client({ product }: ProductDetailsV3Clie
     dispatch(addToCart({
       productId: product._id,
       name: product.name,
-      price: displaySalePrice || displayPrice,
+      price: displaySalePrice,
       basePrice: displayPrice,
       quantity: quantity,
       image: activeVariant?.image || (product.variants && product.variants.length > 0 ? product.variants[0]?.image : product.images?.[0]),

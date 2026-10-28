@@ -166,7 +166,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
     price: initialData?.price ?? '',
     purchasePrice: initialData?.purchasePrice ?? '',
     discountRate: calculateDiscount(initialData?.price, initialData?.salePrice) || '',
-    salePrice: initialData?.salePrice ?? '',
+    salePrice: (initialData?.salePrice && initialData.salePrice > 0 && initialData.salePrice < (initialData.price || 0)) ? initialData.salePrice : '',
     sku: initialData?.sku || '',
     stock: initialData?.stock ?? '',
     categories: initialData?.categories?.map((c: any) => typeof c === 'object' ? c._id : c) || [],
@@ -226,7 +226,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
           purchasePrice: v.purchasePrice ?? '',
           stock: v.stock ?? '',
           discountRate: calculateDiscount(v.price, v.salePrice) || '',
-          salePrice: v.salePrice ?? '',
+          salePrice: (v.salePrice && v.salePrice > 0 && v.salePrice < (v.price || 0)) ? v.salePrice : '',
           sku: v.sku || ''
         });
       });
@@ -286,7 +286,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
           size: sizeInfo.size || '',
           price: sizeInfo.price === '' ? 0 : Number(sizeInfo.price),
           purchasePrice: sizeInfo.purchasePrice === '' ? undefined : Number(sizeInfo.purchasePrice),
-          salePrice: sizeInfo.salePrice === '' ? undefined : Number(sizeInfo.salePrice),
+          salePrice: (() => { const vp = sizeInfo.price === '' ? 0 : Number(sizeInfo.price); const vs = sizeInfo.salePrice === '' ? undefined : Number(sizeInfo.salePrice); return (vs !== undefined && vs > 0 && vs < vp) ? vs : undefined; })(),
           discountRate: sizeInfo.discountRate === '' || isNaN(Number(sizeInfo.discountRate)) ? undefined : Number(sizeInfo.discountRate),
           stock: sizeInfo.stock === '' ? 0 : Number(sizeInfo.stock),
           sku: sizeInfo.sku || '',
@@ -307,7 +307,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
       images: finalImages,
       price: values.price === '' ? 0 : Number(values.price),
       purchasePrice: values.purchasePrice === '' ? undefined : Number(values.purchasePrice),
-      salePrice: values.salePrice === '' ? undefined : Number(values.salePrice),
+      salePrice: (() => { const mp = values.price === '' ? 0 : Number(values.price); const ms = values.salePrice === '' ? undefined : Number(values.salePrice); return (ms !== undefined && ms > 0 && ms < mp) ? ms : undefined; })(),
       discountRate: values.discountRate === '' || isNaN(Number(values.discountRate)) ? undefined : Number(values.discountRate),
       stock: values.stock === '' ? 0 : Number(values.stock),
       variants: flatVariants,
@@ -937,7 +937,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
                               const discount = e.target.value === '' ? undefined : (parseFloat(e.target.value) || 0);
                               field.onChange(discount);
                               const price = form.getValues('price') || 0;
-                              if (price > 0 && discount !== undefined) {
+                              if (price > 0 && discount !== undefined && discount > 0) {
                                 const newSale = price * (1 - discount / 100);
                                 form.setValue('salePrice', Math.round(newSale));
                               } else {

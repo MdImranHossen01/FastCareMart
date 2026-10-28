@@ -126,7 +126,9 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
   }, [selectedColor, selectedSize, availableSizes, activeVariant, product.images]);
 
   const displayPrice = activeVariant?.price || product.price;
-  const displaySalePrice = activeVariant?.salePrice || product.salePrice;
+  const rawSalePrice = activeVariant?.salePrice || product.salePrice;
+  const hasValidDiscount = typeof rawSalePrice === "number" && rawSalePrice > 0 && rawSalePrice < displayPrice;
+  const displaySalePrice = hasValidDiscount ? rawSalePrice : displayPrice;
   const displayStock = activeVariant?.stock ?? product.stock;
   const displaySku = activeVariant?.sku || product.sku;
   const handleAddToCart = () => {
@@ -151,7 +153,7 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
     dispatch(addToCart({
       productId: product._id,
       name: product.name,
-      price: displaySalePrice || displayPrice,
+      price: displaySalePrice,
       basePrice: displayPrice,
       quantity: finalQuantity,
       image: activeVariant?.image || product.images?.[0],
@@ -391,7 +393,7 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
             <span className="text-3xl font-extrabold text-primary">
               ৳{Math.round(displaySalePrice || displayPrice)}
             </span>
-            {displaySalePrice && displaySalePrice !== displayPrice && (
+            {hasValidDiscount && (
               <span className="text-xl text-muted-foreground line-through font-medium">
                 ৳{Math.round(displayPrice)}
               </span>

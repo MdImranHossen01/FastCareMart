@@ -89,7 +89,7 @@ export default function ProductCardV4({ product: initialProduct, isFlashSale }: 
     dispatch(addToCart({
       productId: product._id,
       name: product.name,
-      price: product.salePrice ?? product.price,
+      price: (typeof product.salePrice === 'number' && product.salePrice > 0 && product.salePrice < product.price) ? product.salePrice : product.price,
       basePrice: product.price,
       quantity: 1,
       image: product.images?.[0] ?? '/placeholder.png'
@@ -284,7 +284,7 @@ export default function ProductCardV4({ product: initialProduct, isFlashSale }: 
         <div className="flex flex-col items-center gap-1 mb-4">
            <div className="flex items-center gap-2">
               <span className="text-2xl font-black text-primary">
-                ৳{Math.round(product.salePrice ?? product.price)}
+                ৳{Math.round(((typeof product.salePrice === 'number' && product.salePrice > 0 && product.salePrice < product.price) ? product.salePrice : product.price))}
               </span>
               {product.salePrice && (
                 <span className="text-sm text-muted-foreground line-through opacity-50">

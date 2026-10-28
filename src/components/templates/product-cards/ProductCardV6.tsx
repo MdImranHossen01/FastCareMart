@@ -74,7 +74,7 @@ export default function ProductCardV6({ product: initialProduct, isFlashSale, pr
       dispatch(addToCart({
         productId: product._id,
         name: product.name,
-        price: product.salePrice ?? product.price,
+        price: (typeof product.salePrice === 'number' && product.salePrice > 0 && product.salePrice < product.price) ? product.salePrice : product.price,
         basePrice: product.price,
         quantity: 1,
         image: product.images?.[0]
@@ -115,7 +115,7 @@ export default function ProductCardV6({ product: initialProduct, isFlashSale, pr
     dispatch(addToCart({
       productId: product._id,
       name: product.name,
-      price: product.salePrice ?? product.price,
+      price: (typeof product.salePrice === 'number' && product.salePrice > 0 && product.salePrice < product.price) ? product.salePrice : product.price,
       basePrice: product.price,
       quantity: 1,
       image: product.images?.[0]

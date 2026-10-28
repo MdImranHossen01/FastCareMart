@@ -247,7 +247,9 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
   const currentVariant = activeVariant || defaultVariant;
 
   const displayPrice = hasVariants ? (currentVariant?.price ?? 0) : product.price;
-  const displaySalePrice = hasVariants ? currentVariant?.salePrice : product.salePrice;
+  const rawSalePrice = hasVariants ? currentVariant?.salePrice : product.salePrice;
+  const hasValidDiscount = typeof rawSalePrice === 'number' && rawSalePrice > 0 && rawSalePrice < displayPrice;
+  const displaySalePrice = hasValidDiscount ? rawSalePrice : displayPrice;
   const displayStock = hasVariants ? (currentVariant?.stock ?? 0) : (product.stock ?? 0);
   const displaySku = hasVariants ? (currentVariant?.sku ?? '') : product.sku;
 
@@ -284,7 +286,7 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
     dispatch(addToCart({
       productId: product._id,
       name: product.name,
-      price: displaySalePrice || displayPrice,
+      price: displaySalePrice,
       basePrice: displayPrice,
       quantity: finalQuantity,
       image: activeVariant?.images?.[0] || activeVariant?.image || (product.variants && product.variants.length > 0 ? (product.variants[0]?.images?.[0] || product.variants[0]?.image) : product.images?.[0]),
@@ -417,7 +419,7 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
     }
   };
 
-  const discount = (displayPrice > 0 && displaySalePrice && displaySalePrice < displayPrice)
+  const discount = hasValidDiscount
     ? Math.max(0, Math.round(((displayPrice - displaySalePrice) / displayPrice) * 100))
     : 0;
 
@@ -607,7 +609,7 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
             <span className="text-3xl font-extrabold text-primary">
               {CURRENCY_SYMBOL}{Math.round(displaySalePrice || displayPrice)}
             </span>
-            {displaySalePrice && displaySalePrice !== displayPrice && (
+            {hasValidDiscount && (
               <span className="text-xl text-muted-foreground line-through font-medium">
                 {CURRENCY_SYMBOL}{Math.round(displayPrice)}
               </span>

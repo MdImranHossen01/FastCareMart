@@ -67,7 +67,7 @@ export async function PUT(
             value = (key === 'salePrice' || key === 'discountRate') ? undefined : 0;
           } else {
             const parsed = key === 'stock' ? parseInt(value, 10) : parseFloat(value);
-            value = Number.isFinite(parsed) ? parsed : (key === 'salePrice' || key === 'discountRate' ? undefined : 0);
+            value = (Number.isFinite(parsed) && (key !== 'salePrice' || parsed > 0)) ? parsed : (key === 'salePrice' || key === 'discountRate' ? undefined : 0);
           }
         }
 
@@ -82,7 +82,7 @@ export async function PUT(
             images: Array.isArray(v.images) ? v.images : (v.image ? [v.image] : []),
             price: Number.isFinite(parseFloat(v.price)) ? parseFloat(v.price) : 0,
             purchasePrice: Number.isFinite(parseFloat(v.purchasePrice)) ? parseFloat(v.purchasePrice) : undefined,
-            salePrice: Number.isFinite(parseFloat(v.salePrice)) ? parseFloat(v.salePrice) : undefined,
+            salePrice: (() => { const vp = Number.isFinite(parseFloat(v.price)) ? parseFloat(v.price) : 0; const vs = parseFloat(v.salePrice); return (Number.isFinite(vs) && vs > 0 && (vp <= 0 || vs < vp)) ? vs : undefined; })(),
             stock: Number.isFinite(parseInt(v.stock, 10)) ? parseInt(v.stock, 10) : 0,
             discountRate: Number.isFinite(parseFloat(v.discountRate)) ? parseFloat(v.discountRate) : undefined,
           }));

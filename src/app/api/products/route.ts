@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
     const parsedPrice = Number.isFinite(rawPrice) ? rawPrice : 0;
 
     const rawSalePrice = parseFloat(salePrice);
-    const parsedSalePrice = Number.isFinite(rawSalePrice) ? rawSalePrice : undefined;
+    const parsedSalePrice = (Number.isFinite(rawSalePrice) && rawSalePrice > 0 && rawSalePrice < parsedPrice) ? rawSalePrice : undefined;
 
     const rawStock = parseInt(stock, 10);
     const parsedStock = Number.isFinite(rawStock) ? rawStock : 0;
@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
       image: v.image,
       images: Array.isArray(v.images) ? v.images : (v.image ? [v.image] : []),
       price: Number.isFinite(parseFloat(v.price)) ? parseFloat(v.price) : 0,
-      salePrice: Number.isFinite(parseFloat(v.salePrice)) ? parseFloat(v.salePrice) : undefined,
+      salePrice: (() => { const vp = Number.isFinite(parseFloat(v.price)) ? parseFloat(v.price) : parsedPrice; const vs = parseFloat(v.salePrice); return (Number.isFinite(vs) && vs > 0 && vs < vp) ? vs : undefined; })(),
       stock: Number.isFinite(parseInt(v.stock, 10)) ? parseInt(v.stock, 10) : 0,
       discountRate: Number.isFinite(parseFloat(v.discountRate)) ? parseFloat(v.discountRate) : undefined,
     }));

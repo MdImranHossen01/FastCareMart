@@ -167,7 +167,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
     dispatch(addToCart({
       productId: product._id,
       name: product.name,
-      price: (displaySalePrice !== undefined && displaySalePrice !== null) ? displaySalePrice : displayPrice,
+      price: (typeof displaySalePrice === "number" && displaySalePrice > 0 && displaySalePrice < displayPrice) ? displaySalePrice : displayPrice,
       basePrice: displayPrice,
       quantity: quantity,
       image: activeImage,
@@ -266,7 +266,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
               <span className="text-3xl font-bold text-primary">
                 ৳{Math.round(displaySalePrice || displayPrice)}
               </span>
-              {displaySalePrice != null && (
+              {(typeof displaySalePrice === "number" && displaySalePrice > 0 && displaySalePrice < displayPrice) && (
                 <span className="text-lg line-through text-gray-400">
                   ৳{Math.round(displayPrice)}
                 </span>

@@ -97,7 +97,7 @@ export function QuickAddModal({ product, isOpen, onClose }: QuickAddModalProps) 
     dispatch(addToCart({
       productId: product._id,
       name: product.name,
-      price: (displaySalePrice !== undefined && displaySalePrice !== null) ? displaySalePrice : displayPrice,
+      price: (typeof displaySalePrice === "number" && displaySalePrice > 0 && displaySalePrice < displayPrice) ? displaySalePrice : displayPrice,
       basePrice: displayPrice,
       quantity: 1,
       image: activeVariant?.image || product.images?.[0],

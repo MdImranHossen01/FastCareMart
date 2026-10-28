@@ -73,7 +73,9 @@ export default function ProductDetailsAarongClient({ product }: ProductDetailsAa
   const currentVariant = activeVariant || defaultVariant;
 
   const displayPrice = hasVariants ? (currentVariant?.price ?? 0) : product?.price;
-  const displaySalePrice = hasVariants ? currentVariant?.salePrice : product?.salePrice;
+  const rawSalePrice = hasVariants ? currentVariant?.salePrice : product?.salePrice;
+  const hasValidDiscount = typeof rawSalePrice === 'number' && rawSalePrice > 0 && rawSalePrice < (displayPrice || 0);
+  const displaySalePrice = hasValidDiscount ? rawSalePrice : (displayPrice || 0);
   const displayStock = hasVariants ? (currentVariant?.stock ?? 0) : (product?.stock ?? 0);
 
   const allImages = useMemo(() => {
@@ -151,7 +153,7 @@ export default function ProductDetailsAarongClient({ product }: ProductDetailsAa
     dispatch(addToCart({
       productId: product._id,
       name: product.name,
-      price: displaySalePrice ?? displayPrice,
+      price: displaySalePrice,
       basePrice: displayPrice,
       quantity,
       image: activeImage,
@@ -296,7 +298,7 @@ export default function ProductDetailsAarongClient({ product }: ProductDetailsAa
           </h1>
           
           <div className="flex items-center gap-3 mt-3">
-            {displaySalePrice ? (
+            {hasValidDiscount ? (
               <>
                 <span className="text-xl font-black text-foreground">Tk {(displaySalePrice).toLocaleString()}</span>
                 <span className="text-sm text-muted-foreground line-through font-normal">Tk {(displayPrice ?? 0).toLocaleString()}</span>
