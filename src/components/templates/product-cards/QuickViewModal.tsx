@@ -52,13 +52,19 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
     [product.variants, selectedColor]
   );
 
+  const effectiveSize = useMemo(() => {
+    if (availableSizes.length === 0) return null;
+    if (selectedSize && availableSizes.includes(selectedSize)) return selectedSize;
+    return availableSizes[0] || null;
+  }, [availableSizes, selectedSize]);
+
   const activeVariant = useMemo(() =>
     (product.variants || []).find(
       (v: any) =>
         (v.color || null) === (selectedColor || null) &&
-        (v.size || null) === (selectedSize || null)
+        (v.size || null) === (effectiveSize || null)
     ),
-    [product.variants, selectedColor, selectedSize]
+    [product.variants, selectedColor, effectiveSize]
   );
 
   const hasVariants = product.variants && product.variants.length > 0;
@@ -87,14 +93,9 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
     return product.images || [];
   }, [product.images, product.variants, activeVariant, hasVariants]);
 
-  const [prevIsOpen, setPrevIsOpen] = useState(false);
-  const [prevProductId, setPrevProductId] = useState<string | null>(null);
-  const [prevActiveVariant, setPrevActiveVariant] = useState<any>(null);
-
-  if (isOpen !== prevIsOpen || product?._id !== prevProductId) {
-    setPrevIsOpen(isOpen);
-    setPrevProductId(product?._id || null);
-    if (isOpen) {
+  // Synchronize state safely in useEffect when modal opens or product changes
+  useEffect(() => {
+    if (isOpen && product) {
       const initialColor = uniqueColors[0] || null;
       setSelectedColor(initialColor);
 
@@ -102,36 +103,36 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
         .filter((v: any) => !initialColor || v.color === initialColor)
         .map((v: any) => v.size)
         .filter(Boolean);
-      const initialSize = initialSizes[0] || null;
-      setSelectedSize(initialSize);
+      setSelectedSize(initialSizes[0] || null);
       setQuantity(1);
 
       const defaultVar = product.variants && product.variants.length > 0 ? product.variants[0] : null;
       const initialImg = defaultVar?.image || product.images?.[0] || '/placeholder.jpg';
       setActiveImage(initialImg);
-      setPrevActiveVariant(defaultVar);
-    } else {
+    } else if (!isOpen) {
       setSelectedColor(null);
       setSelectedSize(null);
       setQuantity(1);
     }
-  }
+  }, [isOpen, product?._id]);
 
-  // Handle selectedSize validation during render:
-  if (isOpen && (selectedSize == null || !availableSizes.includes(selectedSize))) {
-    setSelectedSize(availableSizes[0] || null);
-  }
-
-  // Handle activeImage sync with activeVariant during render:
-  if (isOpen && activeVariant !== prevActiveVariant) {
-    setPrevActiveVariant(activeVariant);
-    if (activeVariant?.image) {
+  // Sync active image with selected variant
+  useEffect(() => {
+    if (isOpen && activeVariant?.image) {
       setActiveImage(activeVariant.image);
-    } else if (hasVariants) {
-      const firstVarWithImg = (product.variants || []).find((v: any) => v.image);
-      setActiveImage(firstVarWithImg?.image || product.images?.[0] || '/placeholder.jpg');
     }
-  }
+  }, [isOpen, activeVariant?.image]);
+
+  const handleColorSelect = (colorName: string) => {
+    setSelectedColor(colorName);
+    const validSizes = (product.variants || [])
+      .filter((v: any) => v.color === colorName)
+      .map((v: any) => v.size)
+      .filter(Boolean);
+    if (selectedSize && !validSizes.includes(selectedSize)) {
+      setSelectedSize(validSizes[0] || null);
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -154,10 +155,12 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
     }
   }, [isOpen, product._id, session, displayPrice, displaySalePrice, product.name, product.categories]);
 
-  // Adjust quantity if it exceeds available stock
-  if (isOpen && displayStock > 0 && quantity > displayStock) {
-    setQuantity(displayStock);
-  }
+  // Adjust quantity safely if it exceeds available stock
+  useEffect(() => {
+    if (isOpen && displayStock > 0 && quantity > displayStock) {
+      setQuantity(displayStock);
+    }
+  }, [isOpen, displayStock, quantity]);
 
   const router = useRouter();
 
@@ -172,7 +175,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
       quantity: quantity,
       image: activeImage,
       color: selectedColor || undefined,
-      size: selectedSize || undefined
+      size: effectiveSize || selectedSize || undefined
     }));
 
     // Track AddToCart
@@ -324,7 +327,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
                     {uniqueColors.map((colorName, i) => (
                       <button
                         key={i}
-                        onClick={(e) => { e.preventDefault(); setSelectedColor(colorName); }}
+                        onClick={(e) => { e.preventDefault(); handleColorSelect(colorName); }}
                         className={`px-4 py-2 text-xs font-bold rounded-none border transition-all ${selectedColor === colorName
                           ? 'border-primary bg-primary/5 text-primary'
                           : 'border-gray-200 hover:border-gray-900 text-gray-600'
@@ -339,7 +342,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
 
               {uniqueSizes.length > 0 && (
                 <div className="space-y-3">
-                  <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Size: <span className="text-gray-900">{selectedSize || 'Select...'}</span></span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Size: <span className="text-gray-900">{effectiveSize || selectedSize || 'Select...'}</span></span>
                   <div className="flex flex-wrap gap-2">
                     {uniqueSizes.map((sizeName, i) => {
                       const isAvailable = availableSizes.includes(sizeName);
@@ -348,7 +351,7 @@ export function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps
                           key={i}
                           disabled={!isAvailable}
                           onClick={(e) => { e.preventDefault(); setSelectedSize(sizeName); }}
-                          className={`min-w-[44px] px-2 py-2 text-xs font-bold rounded-none border transition-all ${selectedSize === sizeName
+                          className={`min-w-[44px] px-2 py-2 text-xs font-bold rounded-none border transition-all ${(effectiveSize || selectedSize) === sizeName
                             ? 'border-primary bg-primary/5 text-primary'
                             : !isAvailable
                               ? 'opacity-30 grayscale cursor-not-allowed bg-gray-100'

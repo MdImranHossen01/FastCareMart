@@ -45,22 +45,23 @@ export function QuickAddModal({ product, isOpen, onClose }: QuickAddModalProps) 
     [product.variants, selectedColor]
   );
 
+  const effectiveSize = useMemo(() => {
+    if (availableSizes.length === 0) return null;
+    if (selectedSize && availableSizes.includes(selectedSize)) return selectedSize;
+    return availableSizes[0] || null;
+  }, [availableSizes, selectedSize]);
+
   const activeVariant = useMemo(() =>
     (product.variants || []).find(
       (v: any) =>
         (v.color || null) === (selectedColor || null) &&
-        (v.size || null) === (selectedSize || null)
+        (v.size || null) === (effectiveSize || null)
     ),
-    [product.variants, selectedColor, selectedSize]
+    [product.variants, selectedColor, effectiveSize]
   );
 
-  const [prevIsOpen, setPrevIsOpen] = useState(false);
-  const [prevProductId, setPrevProductId] = useState<string | null>(null);
-
-  if (isOpen !== prevIsOpen || product?._id !== prevProductId) {
-    setPrevIsOpen(isOpen);
-    setPrevProductId(product?._id || null);
-    if (isOpen) {
+  useEffect(() => {
+    if (isOpen && product) {
       const initialColor = uniqueColors[0] || null;
       setSelectedColor(initialColor);
 
@@ -68,17 +69,23 @@ export function QuickAddModal({ product, isOpen, onClose }: QuickAddModalProps) 
         .filter((v: any) => !initialColor || v.color === initialColor)
         .map((v: any) => v.size)
         .filter(Boolean);
-      const initialSize = initialSizes[0] || null;
-      setSelectedSize(initialSize);
-    } else {
+      setSelectedSize(initialSizes[0] || null);
+    } else if (!isOpen) {
       setSelectedColor(null);
       setSelectedSize(null);
     }
-  }
+  }, [isOpen, product?._id]);
 
-  if (isOpen && (selectedSize == null || !availableSizes.includes(selectedSize))) {
-    setSelectedSize(availableSizes[0] || null);
-  }
+  const handleColorSelect = (colorName: string) => {
+    setSelectedColor(colorName);
+    const validSizes = (product.variants || [])
+      .filter((v: any) => v.color === colorName)
+      .map((v: any) => v.size)
+      .filter(Boolean);
+    if (selectedSize && !validSizes.includes(selectedSize)) {
+      setSelectedSize(validSizes[0] || null);
+    }
+  };
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -102,7 +109,7 @@ export function QuickAddModal({ product, isOpen, onClose }: QuickAddModalProps) 
       quantity: 1,
       image: activeVariant?.image || product.images?.[0],
       color: selectedColor || undefined,
-      size: selectedSize || undefined
+      size: effectiveSize || selectedSize || undefined
     }));
     toast.success(`${product.name} added to cart`);
     onClose();
@@ -152,7 +159,7 @@ export function QuickAddModal({ product, isOpen, onClose }: QuickAddModalProps) 
                 {uniqueColors.map((colorName, i) => (
                   <button
                     key={i}
-                    onClick={(e) => { e.preventDefault(); setSelectedColor(colorName); }}
+                    onClick={(e) => { e.preventDefault(); handleColorSelect(colorName); }}
                     className={`px-3 py-1.5 text-sm rounded-md border transition-all ${
                       selectedColor === colorName
                         ? 'border-primary bg-primary/10 text-primary font-bold'
@@ -179,7 +186,7 @@ export function QuickAddModal({ product, isOpen, onClose }: QuickAddModalProps) 
                       disabled={!isAvailable}
                       onClick={(e) => { e.preventDefault(); setSelectedSize(sizeName); }}
                       className={`min-w-[40px] px-2 py-1.5 text-sm rounded-md border transition-all ${
-                        selectedSize === sizeName
+                        (effectiveSize || selectedSize) === sizeName
                           ? 'border-primary bg-primary/10 text-primary font-bold'
                           : !isAvailable 
                             ? 'opacity-40 grayscale cursor-not-allowed bg-muted'
