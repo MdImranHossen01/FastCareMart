@@ -173,7 +173,7 @@ export default function ProductDetailsV3Client({ product }: ProductDetailsV3Clie
 
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950 pt-24 pb-20">
-      <div className="container mx-auto px-4 max-w-7xl">
+      <div className="w-full max-w-7xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-16">
           {/* Visual Architecture */}
           <div className="space-y-6">

@@ -212,7 +212,7 @@ export default function ProductDetailsV5Client({ product }: ProductDetailsV5Clie
       </div>
 
       {/* Right: Scrolling Details */}
-      <div className="lg:w-1/2 bg-background p-8 md:p-16 lg:p-24 flex flex-col justify-center">
+      <div className="lg:w-1/2 bg-background px-4 py-8 md:p-16 lg:p-24 flex flex-col justify-center">
          <div className="max-w-2xl mx-auto w-full space-y-12">
             <div className="space-y-6">
               <div className="flex items-center justify-between">
