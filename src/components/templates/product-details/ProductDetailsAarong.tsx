@@ -12,7 +12,7 @@ const sanitizeForScript = (json: any) => {
 export default async function ProductDetailsAarong({ product }: { product: any }) {
   if (!product) {
     return (
-      <div className="container py-20 text-center">
+      <div className="w-full py-20 text-center">
         <h1 className="text-2xl font-bold">Product not found</h1>
         <Link href="/shop">
           <Button variant="link" className="mt-4">
@@ -31,7 +31,7 @@ export default async function ProductDetailsAarong({ product }: { product: any }
   ]);
 
   return (
-    <div className="container mx-auto px-4 py-6 md:py-10">
+    <div className="w-full">
       {productSchema && (
         <script
           id="product-schema"
@@ -55,7 +55,7 @@ export default async function ProductDetailsAarong({ product }: { product: any }
         <span className="text-foreground font-medium truncate">{product.name}</span>
       </div>
 
-      <div className="p-0 md:p-4">
+      <div className="w-full">
         <ProductDetailsAarongClient product={product} />
       </div>
     </div>

@@ -113,7 +113,7 @@ export default async function ProductDetailsPage({ params }: { params: Promise<{
   }
 
   return (
-    <div className="w-full pt-2 pb-10">
+    <div className="container mx-auto px-4 pt-2 pb-10">
 
       <div className="w-full">
         {/* Track View */}
@@ -123,7 +123,7 @@ export default async function ProductDetailsPage({ params }: { params: Promise<{
       </div>
 
       {Array.isArray(related) && related.length > 0 && (
-        <section className="container mx-auto px-4 mt-20">
+        <section className="mt-20">
           <div className="flex items-end justify-between mb-8 gap-4">
             <div>
               <h2 className="text-2xl md:text-3xl font-black tracking-tight">You May Also Like</h2>

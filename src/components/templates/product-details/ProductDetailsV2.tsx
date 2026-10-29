@@ -24,7 +24,7 @@ export default async function ProductDetailsV2({ product }: { product: any }) {
   ]);
 
   return (
-    <div className="container mx-auto px-4 md:px-8 py-6 md:py-10">
+    <div className="w-full">
       {productSchema && (
         <Script
           id="product-schema-v2"
