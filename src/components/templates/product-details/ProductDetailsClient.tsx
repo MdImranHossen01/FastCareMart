@@ -863,12 +863,10 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
           </TabsList>
 
           <TabsContent value="description" className="animate-in fade-in-50 duration-500">
-            <div className="ProseMirror max-w-none">
-              <div
-                className="ProseMirror max-w-none text-muted-foreground"
-                dangerouslySetInnerHTML={{ __html: generateHtml(product.description) }}
-              />
-            </div>
+            <div
+              className="ProseMirror max-w-none text-muted-foreground !p-0"
+              dangerouslySetInnerHTML={{ __html: generateHtml(product.description) }}
+            />
           </TabsContent>
 
           <TabsContent value="reviews" className="animate-in fade-in-50 duration-500">

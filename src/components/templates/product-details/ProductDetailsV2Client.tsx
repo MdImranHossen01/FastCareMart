@@ -365,7 +365,7 @@ export default function ProductDetailsV2Client({ product }: ProductDetailsV2Clie
               </TabsList>
               <TabsContent value="specs" className="py-8">
                  <div 
-                    className="ProseMirror max-w-none text-muted-foreground"
+                    className="ProseMirror max-w-none text-muted-foreground !p-0"
                     dangerouslySetInnerHTML={{ __html: generateHtml(product.description) }}
                  />
               </TabsContent>

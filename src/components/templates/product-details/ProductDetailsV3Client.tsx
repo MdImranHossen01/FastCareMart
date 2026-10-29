@@ -340,7 +340,7 @@ export default function ProductDetailsV3Client({ product }: ProductDetailsV3Clie
                    </div>
                 </div>
                 <div 
-                   className="ProseMirror max-w-none text-muted-foreground"
+                   className="ProseMirror max-w-none text-muted-foreground !p-0"
                    dangerouslySetInnerHTML={{ __html: generateHtml(product.description) }}
                 />
              </div>

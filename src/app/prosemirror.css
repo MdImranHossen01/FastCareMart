@@ -13,9 +13,14 @@
 }
 
 .ProseMirror {
-    @apply p-4 font-sans leading-normal;
+    @apply p-0 font-sans leading-normal;
     color: hsl(var(--foreground));
     font-size: 14px !important;
+} 
+
+.tiptap.ProseMirror,
+.editor-content .ProseMirror {
+    @apply p-4;
 }
 
 .ProseMirror p {

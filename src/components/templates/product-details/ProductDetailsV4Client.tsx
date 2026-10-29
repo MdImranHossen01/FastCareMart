@@ -358,7 +358,7 @@ export default function ProductDetailsV4Client({ product }: ProductDetailsV4Clie
             </TabsList>
             <TabsContent value="description" className="animate-in fade-in duration-500">
                <div 
-                  className="ProseMirror max-w-none text-muted-foreground"
+                  className="ProseMirror max-w-none text-muted-foreground !p-0"
                   dangerouslySetInnerHTML={{ __html: generateHtml(product.description) }}
                />
             </TabsContent>
