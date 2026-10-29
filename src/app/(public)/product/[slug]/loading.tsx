@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {
   return (
-    <div className="container px-4 md:px-0 mx-auto pt-8 pb-20 animate-in fade-in duration-500">
+    <div className="container mx-auto px-4 pt-8 pb-20 animate-in fade-in duration-500">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 mt-4">
         {/* Left Side: Images Skeleton */}
         <div className="space-y-4">
