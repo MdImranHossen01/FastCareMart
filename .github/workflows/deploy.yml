@@ -67,7 +67,7 @@ jobs:
                 container_name: fastcaremart-app
                 restart: unless-stopped
                 ports:
-                  - "3003:3000"
+                  - "3007:3000"
                 environment:
                   - NODE_OPTIONS=--max-old-space-size=125
                 env_file:

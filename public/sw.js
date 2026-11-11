@@ -1,4 +1,4 @@
-const CACHE_NAME = 'Fast-Care-Mart-cache-v1';
+const CACHE_NAME = 'Fast-Care-Mart-cache-v2';
 const OFFLINE_URL = '/offline';
 
 const ASSETS_TO_CACHE = [
