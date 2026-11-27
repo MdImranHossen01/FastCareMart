@@ -514,7 +514,7 @@ export default function NavbarAarong() {
                   </div>
 
                   {/* Wishlist Link */}
-                  <Link href="/dashboard/wishlist" className="relative p-2 text-foreground hover:text-primary transition-colors">
+                  <Link prefetch={false} href="/dashboard/wishlist" className="relative p-2 text-foreground hover:text-primary transition-colors">
                     <Heart className="h-5 w-5" />
                     {wishlistCount > 0 && (
                       <span className="absolute top-0 right-0 h-4 min-w-[16px] px-1 bg-primary text-primary-foreground text-[9px] font-black rounded-full flex items-center justify-center animate-bounce shadow-md">
@@ -555,12 +555,12 @@ export default function NavbarAarong() {
                           <DropdownMenuSeparator className="bg-border" />
                           <DropdownMenuGroup>
                             <DropdownMenuItem asChild className="p-2.5 text-xs font-bold uppercase tracking-wider hover:bg-muted focus:bg-muted cursor-pointer">
-                              <Link href="/dashboard/profile" className="flex items-center w-full">
+                              <Link prefetch={false} href="/dashboard/profile" className="flex items-center w-full">
                                 <User className="mr-2 h-4 w-4 text-primary" /> Profile Details
                               </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild className="p-2.5 text-xs font-bold uppercase tracking-wider hover:bg-muted focus:bg-muted cursor-pointer">
-                              <Link href="/dashboard" className="flex items-center w-full">
+                              <Link prefetch={false} href="/dashboard" className="flex items-center w-full">
                                 <Package className="mr-2 h-4 w-4 text-primary" /> Order History
                               </Link>
                             </DropdownMenuItem>
@@ -571,7 +571,7 @@ export default function NavbarAarong() {
                             </DropdownMenuItem>
                             {(session.user as any)?.role === 'admin' || (session.user as any)?.role === 'super_admin' ? (
                               <DropdownMenuItem asChild className="p-2.5 text-xs font-black uppercase tracking-wider hover:bg-muted focus:bg-muted cursor-pointer text-primary">
-                                <Link href="/admin/dashboard" className="flex items-center w-full">
+                                <Link prefetch={false} href="/admin/dashboard" className="flex items-center w-full">
                                   <LayoutDashboard className="mr-2 h-4 w-4" /> Admin Controls
                                 </Link>
                               </DropdownMenuItem>
@@ -595,12 +595,12 @@ export default function NavbarAarong() {
                           </DropdownMenuLabel>
                           <DropdownMenuSeparator className="bg-border" />
                           <DropdownMenuItem asChild className="p-2.5 text-xs font-bold uppercase tracking-wider hover:bg-muted focus:bg-muted cursor-pointer">
-                            <Link href="/login" className="flex items-center w-full">
+                            <Link prefetch={false} href="/login" className="flex items-center w-full">
                               <User className="mr-2 h-4 w-4 text-primary" /> Log In
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild className="p-2.5 text-xs font-bold uppercase tracking-wider hover:bg-muted focus:bg-muted cursor-pointer">
-                            <Link href="/register" className="flex items-center w-full">
+                            <Link prefetch={false} href="/register" className="flex items-center w-full">
                               <User className="mr-2 h-4 w-4 text-primary" /> Sign Up
                             </Link>
                           </DropdownMenuItem>
